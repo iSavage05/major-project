@@ -39,7 +39,7 @@ def create_app():
     mongo.init_app(app)
     jwt.init_app(app)
     
-    # Configure CORS
+    # Configure CORS - allow all origins
     CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], max_age=600)
     
     # Create directories

@@ -5,15 +5,25 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { ArrowLeft, Plus, DollarSign, Package, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Plus, DollarSign, Package, CheckCircle, FolderOpen, Tag, X } from 'lucide-react';
 
 const Suppliers = () => {
   const navigate = useNavigate();
-  const [availableMaterials, setAvailableMaterials] = useState([]);
+  const [availableDesigns, setAvailableDesigns] = useState([]);
+  const [myBids, setMyBids] = useState([]);
   const [catalog, setCatalog] = useState([]);
+  
+  // Selection states
+  const [selectedDesign, setSelectedDesign] = useState(null);
+  const [designCategories, setDesignCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  
+  // Modal states
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [isMaterialsModalOpen, setIsMaterialsModalOpen] = useState(false);
+  const [viewingMaterials, setViewingMaterials] = useState([]);
+  
   const [bidForm, setBidForm] = useState({
     price: '',
     estimated_delivery_days: '',
@@ -34,11 +44,13 @@ const Suppliers = () => {
 
   const fetchData = async () => {
     try {
-      const [materialsRes, catalogRes] = await Promise.all([
-        suppliersAPI.getMaterials(),
+      const [designsRes, bidsRes, catalogRes] = await Promise.all([
+        suppliersAPI.getAvailableDesigns(),
+        suppliersAPI.getMyBids(),
         suppliersAPI.getCatalog(),
       ]);
-      setAvailableMaterials(materialsRes.data);
+      setAvailableDesigns(designsRes.data);
+      setMyBids(bidsRes.data);
       setCatalog(catalogRes.data);
     } catch (error) {
       console.error('Error fetching supplier data:', error);
@@ -47,8 +59,25 @@ const Suppliers = () => {
     }
   };
 
-  const handleOpenBidModal = (material) => {
-    setSelectedMaterial(material);
+  const handleSelectDesign = async (design) => {
+    setSelectedDesign(design);
+    setSelectedCategory(null);
+    try {
+      const response = await suppliersAPI.getDesignCategories(design.id);
+      setDesignCategories(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      alert('Failed to load categories');
+    }
+  };
+
+  const handleViewMaterials = (categoryData) => {
+    setViewingMaterials(categoryData.materials);
+    setIsMaterialsModalOpen(true);
+  };
+
+  const handleOpenBidModal = (category) => {
+    setSelectedCategory(category);
     setBidForm({ price: '', estimated_delivery_days: '', notes: '' });
     setIsBidModalOpen(true);
   };
@@ -57,18 +86,21 @@ const Suppliers = () => {
     e.preventDefault();
     try {
       await suppliersAPI.createBid({
-        material_id: selectedMaterial.id,
-        ...bidForm,
+        design_id: selectedDesign.id,
+        category: selectedCategory.category,
         price: parseFloat(bidForm.price),
         estimated_delivery_days: parseInt(bidForm.estimated_delivery_days),
+        notes: bidForm.notes,
       });
       setIsBidModalOpen(false);
-      setSelectedMaterial(null);
+      setSelectedCategory(null);
       setBidForm({ price: '', estimated_delivery_days: '', notes: '' });
+      fetchData();
       alert('Bid submitted successfully!');
     } catch (error) {
       console.error('Error submitting bid:', error);
-      alert('Failed to submit bid. Please try again.');
+      const errorMsg = error.response?.data?.error || 'Failed to submit bid. Please try again.';
+      alert(errorMsg);
     }
   };
 
@@ -126,63 +158,146 @@ const Suppliers = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Available Materials for Bidding */}
+          {/* Available Designs for Bidding */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Package className="w-5 h-5 mr-2" />
-                Materials Requiring Bids
+                <FolderOpen className="w-5 h-5 mr-2" />
+                Available Designs for Bidding
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {availableMaterials.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No materials available for bidding at the moment.</p>
-              ) : (
+              {availableDesigns.length === 0 ? (
+                <p className="text-gray-600 text-center py-8">No designs available for bidding at the moment.</p>
+              ) : !selectedDesign ? (
+                // Show Design List
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {availableMaterials.map((material) => (
-                    <div key={material.id} className="border rounded-lg p-4">
-                      <h4 className="font-semibold">{material.description}</h4>
+                  {availableDesigns.map((design) => (
+                    <div key={design.id} className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-lg">{design.design_name}</h4>
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{design.prompt}</p>
                       <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
-                        <span>{material.quantity} {material.unit}</span>
-                        <span className="capitalize">{material.category}</span>
+                        <span>{design.materials_count} materials</span>
+                        <span className="capitalize">{design.categories?.length || 0} categories</span>
                       </div>
                       <Button
                         size="sm"
                         className="w-full mt-3"
-                        onClick={() => handleOpenBidModal(material)}
+                        onClick={() => handleSelectDesign(design)}
                       >
-                        <DollarSign className="w-4 h-4 mr-2" />
-                        Place Bid
+                        View Categories
                       </Button>
                     </div>
                   ))}
+                </div>
+              ) : (
+                // Show Categories for Selected Design
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">{selectedDesign.design_name} - Categories</h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedDesign(null);
+                        setSelectedCategory(null);
+                        setDesignCategories([]);
+                      }}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-1" />
+                      Back to Designs
+                    </Button>
+                  </div>
+                  
+                  {designCategories.length === 0 ? (
+                    <p className="text-gray-600 text-center py-8">No categories available for this design.</p>
+                  ) : (
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {designCategories.map((category) => (
+                        <div key={category.category} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Tag className="w-4 h-4 mr-2 text-blue-500" />
+                              <h4 className="font-semibold capitalize">{category.category}</h4>
+                            </div>
+                            <span className="text-sm text-gray-600">{category.count} items</span>
+                          </div>
+                          
+                          {category.existing_bid ? (
+                            <div className="mt-3 p-2 bg-gray-100 rounded">
+                              <p className="text-sm">
+                                <span className="font-medium">Your bid:</span> ${category.existing_bid.price}
+                              </p>
+                              <p className="text-xs text-gray-600 capitalize">
+                                Status: {category.existing_bid.status}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => handleViewMaterials(category)}
+                              >
+                                <Package className="w-4 h-4 mr-1" />
+                                View Materials
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleOpenBidModal(category)}
+                              >
+                                <DollarSign className="w-4 h-4 mr-1" />
+                                Place Bid
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* My Catalog */}
+          {/* My Bids */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-2" />
-                My Catalog
+                <DollarSign className="w-5 h-5 mr-2" />
+                My Bids
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {catalog.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">Your catalog is empty. Add products to start selling!</p>
+              {myBids.length === 0 ? (
+                <p className="text-gray-600 text-center py-8">You haven't placed any bids yet.</p>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {catalog.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4">
-                      <h4 className="font-semibold">{item.product_name}</h4>
-                      {item.description && (
-                        <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                      )}
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm text-gray-600 capitalize">{item.category}</span>
-                        <span className="font-semibold">${item.price}</span>
+                  {myBids.map((bid) => (
+                    <div key={bid.id} className="border rounded-lg p-4">
+                      <h4 className="font-semibold">{bid.design_name}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm capitalize bg-gray-100 px-2 py-1 rounded">
+                          {bid.category}
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          {bid.materials_count} materials
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mt-3">
+                        <div>
+                          <p className="font-semibold">${bid.price}</p>
+                          <p className="text-xs text-gray-600">{bid.estimated_delivery_days} days delivery</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
+                          bid.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                          bid.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {bid.status}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -193,11 +308,42 @@ const Suppliers = () => {
         </div>
       </main>
 
+      {/* Materials Modal */}
+      <Modal
+        isOpen={isMaterialsModalOpen}
+        onClose={() => {
+          setIsMaterialsModalOpen(false);
+          setViewingMaterials([]);
+        }}
+        title="Materials in Category"
+      >
+        <div className="max-h-96 overflow-y-auto">
+          {viewingMaterials.map((material) => (
+            <div key={material.id} className="border-b py-2 last:border-0">
+              <p className="font-medium">{material.description}</p>
+              <p className="text-sm text-gray-600">
+                {material.quantity} {material.unit} | HSN: {material.hsn_sac || 'N/A'}
+              </p>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="secondary"
+          className="w-full mt-4"
+          onClick={() => {
+            setIsMaterialsModalOpen(false);
+            setViewingMaterials([]);
+          }}
+        >
+          Close
+        </Button>
+      </Modal>
+
       {/* Bid Modal */}
       <Modal
         isOpen={isBidModalOpen}
         onClose={() => setIsBidModalOpen(false)}
-        title={`Place Bid for ${selectedMaterial?.description}`}
+        title={`Place Bid for ${selectedDesign?.design_name} - ${selectedCategory?.category}`}
       >
         <form onSubmit={handleSubmitBid} className="space-y-4">
           <div>
@@ -288,12 +434,23 @@ const Suppliers = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Category
             </label>
-            <Input
-              type="text"
+            <select
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={catalogForm.category}
               onChange={(e) => setCatalogForm({ ...catalogForm, category: e.target.value })}
-              placeholder="e.g., Furniture, Paint, Lighting"
-            />
+            >
+              <option value="">Select a category</option>
+              <option value="furniture">Furniture</option>
+              <option value="paint">Paint</option>
+              <option value="electrical">Electrical</option>
+              <option value="lighting">Lighting</option>
+              <option value="flooring">Flooring</option>
+              <option value="hardware">Hardware</option>
+              <option value="decor">Decor</option>
+              <option value="structural">Structural</option>
+              <option value="plumbing">Plumbing</option>
+              <option value="other">Other</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

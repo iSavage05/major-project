@@ -139,6 +139,7 @@ class Design:
         if data:
             self.id = str(data.get('_id', ''))
             self.project_id = data.get('project_id')
+            self.design_name = data.get('design_name', 'Untitled Design')
             self.original_image_url = data.get('original_image_url', data.get('original_image_path'))
             self.generated_image_url = data.get('generated_image_url', data.get('generated_image_path'))
             self.prompt = data.get('prompt')
@@ -170,6 +171,7 @@ class Design:
         return {
             'id': self.id,
             'project_id': self.project_id,
+            'design_name': self.design_name,
             'original_image_url': self.original_image_url,
             'generated_image_url': self.generated_image_url,
             'prompt': self.prompt,
@@ -183,6 +185,7 @@ class Material:
         if data:
             self.id = str(data.get('_id', ''))
             self.project_id = data.get('project_id')
+            self.design_id = data.get('design_id')
             self.description = data.get('description')
             self.hsn_sac = data.get('hsn_sac')
             self.quantity = data.get('quantity')
@@ -202,6 +205,10 @@ class Material:
         return list(Material.collection.find({'project_id': project_id}))
     
     @staticmethod
+    def find_by_design(design_id):
+        return list(Material.collection.find({'design_id': design_id}))
+    
+    @staticmethod
     def find_by_id(material_id):
         return Material.collection.find_one({'_id': ObjectId(material_id)})
     
@@ -214,6 +221,10 @@ class Material:
         Material.collection.delete_many({'project_id': project_id})
     
     @staticmethod
+    def delete_by_design(design_id):
+        Material.collection.delete_many({'design_id': design_id})
+    
+    @staticmethod
     def update(material_id, data):
         Material.collection.update_one(
             {'_id': ObjectId(material_id)},
@@ -224,6 +235,7 @@ class Material:
         return {
             'id': self.id,
             'project_id': self.project_id,
+            'design_id': self.design_id,
             'description': self.description,
             'hsn_sac': self.hsn_sac,
             'quantity': self.quantity,
@@ -240,23 +252,33 @@ class ExecutionPlan:
         if data:
             self.id = str(data.get('_id', ''))
             self.project_id = data.get('project_id')
+            self.design_id = data.get('design_id')
             self.total_duration = data.get('total_duration')
             self.project_summary = data.get('project_summary')
             self.phases_json = data.get('phases_json')
             self.labour_json = data.get('labour_json')
+            self.category_json = data.get('category_json')  # Category breakdown with days
             self.material_usage_json = data.get('material_usage_json')
             self.site_notes = data.get('site_notes')
+            self.progress_logs = data.get('progress_logs', [])  # Array of progress entries
             self.created_at = data.get('created_at', datetime.utcnow())
+            self.updated_at = data.get('updated_at', datetime.utcnow())
     
     @staticmethod
     def create(data):
         data['created_at'] = datetime.utcnow()
+        data['updated_at'] = datetime.utcnow()
+        data['progress_logs'] = data.get('progress_logs', [])
         result = ExecutionPlan.collection.insert_one(data)
         return str(result.inserted_id)
     
     @staticmethod
     def find_by_project(project_id):
-        return ExecutionPlan.collection.find_one({'project_id': project_id})
+        return list(ExecutionPlan.collection.find({'project_id': project_id}).sort('created_at', -1))
+    
+    @staticmethod
+    def find_by_design(design_id):
+        return list(ExecutionPlan.collection.find({'design_id': design_id}).sort('created_at', -1))
     
     @staticmethod
     def find_by_id(plan_id):
@@ -267,23 +289,42 @@ class ExecutionPlan:
         ExecutionPlan.collection.delete_many({'project_id': project_id})
     
     @staticmethod
+    def delete_by_design(design_id):
+        ExecutionPlan.collection.delete_many({'design_id': design_id})
+    
+    @staticmethod
     def update(plan_id, data):
+        data['updated_at'] = datetime.utcnow()
         ExecutionPlan.collection.update_one(
             {'_id': ObjectId(plan_id)},
             {'$set': data}
+        )
+    
+    @staticmethod
+    def add_progress_log(plan_id, log_entry):
+        """Add a progress log entry to the execution plan"""
+        log_entry['logged_at'] = datetime.utcnow().isoformat()
+        ExecutionPlan.collection.update_one(
+            {'_id': ObjectId(plan_id)},
+            {'$push': {'progress_logs': log_entry},
+             '$set': {'updated_at': datetime.utcnow()}}
         )
     
     def to_dict(self):
         return {
             'id': self.id,
             'project_id': self.project_id,
+            'design_id': self.design_id,
             'total_duration': self.total_duration,
             'project_summary': self.project_summary,
             'phases_json': self.phases_json,
             'labour_json': self.labour_json,
+            'category_json': self.category_json,
             'material_usage_json': self.material_usage_json,
             'site_notes': self.site_notes,
-            'created_at': self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at
+            'progress_logs': self.progress_logs,
+            'created_at': self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at,
+            'updated_at': self.updated_at.isoformat() if isinstance(self.updated_at, datetime) else self.updated_at
         }
 
 class Milestone:
@@ -398,7 +439,9 @@ class Bid:
     def __init__(self, data=None):
         if data:
             self.id = str(data.get('_id', ''))
-            self.material_id = data.get('material_id')
+            self.material_id = data.get('material_id')  # Kept for backward compatibility
+            self.design_id = data.get('design_id')
+            self.category = data.get('category')
             self.supplier_id = data.get('supplier_id')
             self.price = data.get('price')
             self.estimated_delivery_days = data.get('estimated_delivery_days')
@@ -418,8 +461,16 @@ class Bid:
         return list(Bid.collection.find({'material_id': material_id}))
     
     @staticmethod
+    def find_by_design_category(design_id, category):
+        return list(Bid.collection.find({'design_id': design_id, 'category': category}))
+    
+    @staticmethod
     def find_by_supplier(supplier_id):
         return list(Bid.collection.find({'supplier_id': supplier_id}))
+    
+    @staticmethod
+    def find_by_supplier_and_design(supplier_id, design_id):
+        return list(Bid.collection.find({'supplier_id': supplier_id, 'design_id': design_id}))
     
     @staticmethod
     def find_by_id(bid_id):
@@ -440,6 +491,8 @@ class Bid:
         return {
             'id': self.id,
             'material_id': self.material_id,
+            'design_id': self.design_id,
+            'category': self.category,
             'supplier_id': self.supplier_id,
             'price': self.price,
             'estimated_delivery_days': self.estimated_delivery_days,

@@ -95,7 +95,19 @@ class DesignService:
             {prompt}
 
             Use an Indian invoice/material schedule style similar to:
-            Description of Goods | HSN/SAC | Qty | Unit
+            Description of Goods | HSN/SAC | Qty | Unit | Category
+
+            Categories to choose from:
+            - furniture (tables, chairs, sofas, cabinets, storage units, beds)
+            - paint (wall paints, primers, finishes)
+            - electrical (wires, switches, outlets, fixtures, cables)
+            - lighting (lamps, chandeliers, LED lights, fixtures)
+            - flooring (tiles, wood, carpet, vinyl, underlayment)
+            - hardware (hinges, handles, screws, fasteners, brackets)
+            - decor (curtains, mirrors, artwork, plants, accessories)
+            - structural (cement, bricks, drywall, insulation)
+            - plumbing (pipes, faucets, fittings, fixtures)
+            - other (anything that doesn't fit above)
 
             Requirements:
             - Infer the room type and required items from the transformation prompt.
@@ -110,7 +122,8 @@ class DesignService:
             - Quantities should be realistic for one room transformation.
             - Do not include prices.
             - Output only a Markdown table with these columns:
-              Description of Goods | HSN/SAC | Qty | Unit
+              Description of Goods | HSN/SAC | Qty | Unit | Category
+            - Assign the most appropriate category to each material item.
 
             Note: HSN/SAC and quantities are estimates and should be verified by the
             contractor/vendor before purchase.
@@ -159,6 +172,7 @@ class DesignService:
                 # Execution Plan - {room_name}
                 ## Project Summary
                 ## Time Required
+                ## Categories Breakdown
                 ## Phase-wise Work Plan
                 ## Labour Required
                 ## Material Usage Plan
@@ -166,6 +180,13 @@ class DesignService:
 
                 Format Time Required as a compact table with total duration and major
                 phase durations.
+
+                Format Categories Breakdown as a table showing estimated days per material category:
+                Category | Estimated Days | Notes
+                - Categories: paint, electrical, furniture, flooring, lighting, hardware, decor, structural, plumbing, other
+                - Estimated Days: approximate days of work for that category
+                - Sum of all category days should equal or approximate total project duration
+                - This helps create a category-wise Gantt chart
 
                 Format Phase-wise Work Plan as a table with:
                 Phase | Work | Materials Used | Labour Used | Estimated Time | Dependencies

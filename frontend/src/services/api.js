@@ -46,13 +46,20 @@ export const designAPI = {
   getImage: (designId) => api.get(`/design/image/${designId}`),
   generateExecutionPlan: (designId) => api.post(`/design/${designId}/execution-plan`),
   getProjectDesigns: (projectId) => api.get(`/design/project/${projectId}`),
+  getExecutionPlan: (planId) => api.get(`/design/execution-plan/${planId}`),
+  logExecutionProgress: (planId, data) => api.post(`/design/execution-plan/${planId}/progress`, data),
+  getExecutionProgress: (planId) => api.get(`/design/execution-plan/${planId}/progress`),
 };
 
 export const suppliersAPI = {
   getMaterials: () => api.get('/suppliers/materials'),
+  getAvailableDesigns: () => api.get('/suppliers/designs'),
+  getDesignCategories: (designId) => api.get(`/suppliers/design/${designId}/categories`),
   createBid: (data) => api.post('/suppliers/bid', data),
+  getMyBids: () => api.get('/suppliers/my-bids'),
   getMaterialBids: (materialId) => api.get(`/suppliers/bids/${materialId}`),
   acceptBid: (bidId) => api.post(`/suppliers/bid/${bidId}/accept`),
+  rejectBid: (bidId) => api.post(`/suppliers/bid/${bidId}/reject`),
   addToCatalog: (data) => api.post('/suppliers/catalog', data),
   getCatalog: () => api.get('/suppliers/catalog'),
 };

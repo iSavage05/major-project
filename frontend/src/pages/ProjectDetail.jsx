@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { projectsAPI, designAPI, dashboardAPI } from '../services/api';
+import { projectsAPI, designAPI, dashboardAPI, suppliersAPI } from '../services/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import { ArrowLeft, Upload, Wand2, FileText, Clock, Users, Package, Smartphone } from 'lucide-react';
+import ExecutionPlanCharts from '../components/ExecutionPlanCharts';
+import { ArrowLeft, Upload, Wand2, FileText, Clock, Users, Package, Smartphone, PlayCircle, TrendingUp, BarChart3 } from 'lucide-react';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -12,13 +13,22 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const [designs, setDesigns] = useState([]);
   const [materials, setMaterials] = useState([]);
-  const [executionPlan, setExecutionPlan] = useState(null);
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDesignModalOpen, setIsDesignModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [prompt, setPrompt] = useState('');
+  const [designName, setDesignName] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [selectedDesignForMaterials, setSelectedDesignForMaterials] = useState(null);
+  
+  // Execution Plan Dialog State
+  const [isExecutionDialogOpen, setIsExecutionDialogOpen] = useState(false);
+  const [selectedDesign, setSelectedDesign] = useState(null);
+  const [executionPlanDetails, setExecutionPlanDetails] = useState(null);
+  const [progressLogs, setProgressLogs] = useState([]);
+  const [progressForm, setProgressForm] = useState({ days_logged: '', description: '', phase: '' });
+  const [loadingExecutionDetails, setLoadingExecutionDetails] = useState(false);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -28,12 +38,8 @@ const ProjectDetail = () => {
     try {
       const response = await dashboardAPI.getProjectDetails(id);
       setProject(response.data.project);
-      setMaterials(response.data.materials);
-      setExecutionPlan(response.data.execution_plan);
+      setDesigns(response.data.designs || []);
       setBids(response.data.bids);
-      
-      const designsRes = await designAPI.getProjectDesigns(id);
-      setDesigns(designsRes.data);
     } catch (error) {
       console.error('Error fetching project details:', error);
     } finally {
@@ -55,11 +61,13 @@ const ProjectDetail = () => {
       formData.append('image', selectedFile);
       formData.append('project_id', id);
       formData.append('prompt', prompt);
+      formData.append('design_name', designName || 'Untitled Design');
 
       const response = await designAPI.generate(formData);
       setIsDesignModalOpen(false);
       setSelectedFile(null);
       setPrompt('');
+      setDesignName('');
       fetchProjectDetails();
       alert('Design generated successfully!');
     } catch (error) {
@@ -72,12 +80,104 @@ const ProjectDetail = () => {
 
   const handleGenerateExecutionPlan = async (designId) => {
     try {
+      setGenerating(true);
       await designAPI.generateExecutionPlan(designId);
       fetchProjectDetails();
       alert('Execution plan generated successfully!');
     } catch (error) {
       console.error('Error generating execution plan:', error);
       alert('Failed to generate execution plan. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleAcceptBid = async (bidId) => {
+    try {
+      await suppliersAPI.acceptBid(bidId);
+      fetchProjectDetails();
+      alert('Bid accepted successfully!');
+    } catch (error) {
+      console.error('Error accepting bid:', error);
+      alert('Failed to accept bid. Please try again.');
+    }
+  };
+
+  const handleRejectBid = async (bidId) => {
+    try {
+      await suppliersAPI.rejectBid(bidId);
+      fetchProjectDetails();
+      alert('Bid rejected successfully!');
+    } catch (error) {
+      console.error('Error rejecting bid:', error);
+      alert('Failed to reject bid. Please try again.');
+    }
+  };
+
+  const handleOpenExecutionDialog = async (design) => {
+    setSelectedDesign(design);
+    setIsExecutionDialogOpen(true);
+    setLoadingExecutionDetails(true);
+    try {
+      // Use the aggregated execution plan data from the design
+      const aggregated = design.aggregated_execution_plan;
+      
+      // Create a combined plan object with category data for the charts
+      const combinedPlan = {
+        id: design.id,
+        design_name: design.design_name,
+        category_summary: aggregated.category_summary || [],
+        labour: aggregated.labour_summary || [],
+        total_labour_days: aggregated.total_labour_days,
+        calculated_duration: aggregated.calculated_duration,
+        progress_logs: aggregated.all_progress_logs || [],
+        categories_count: aggregated.categories_count
+      };
+      
+      setExecutionPlanDetails(combinedPlan);
+      setProgressLogs(aggregated.all_progress_logs || []);
+    } catch (error) {
+      console.error('Error fetching execution plan details:', error);
+    } finally {
+      setLoadingExecutionDetails(false);
+    }
+  };
+
+  const handleLogProgress = async (e) => {
+    e.preventDefault();
+    if (!selectedDesign || !selectedDesign.execution_plans || selectedDesign.execution_plans.length === 0) return;
+    
+    try {
+      // Log progress to the first execution plan (could be enhanced to select specific category)
+      const targetPlan = selectedDesign.execution_plans[0];
+      
+      await designAPI.logExecutionProgress(targetPlan.id, {
+        days_logged: parseFloat(progressForm.days_logged),
+        description: progressForm.description,
+        phase: progressForm.phase || null
+      });
+      
+      // Refresh project details to get updated aggregated data
+      await fetchProjectDetails();
+      
+      // Refresh the dialog data
+      const updatedDesign = designs.find(d => d.id === selectedDesign.id);
+      if (updatedDesign) {
+        const aggregated = updatedDesign.aggregated_execution_plan;
+        setExecutionPlanDetails({
+          ...executionPlanDetails,
+          progress_logs: aggregated.all_progress_logs || [],
+          total_labour_days: aggregated.total_labour_days
+        });
+        setProgressLogs(aggregated.all_progress_logs || []);
+      }
+      
+      // Reset form
+      setProgressForm({ days_logged: '', description: '', phase: '' });
+      alert('Progress logged successfully!');
+    } catch (error) {
+      console.error('Error logging progress:', error);
+      alert('Failed to log progress. Please try again.');
     }
   };
 
@@ -159,6 +259,7 @@ const ProjectDetail = () => {
                 <div className="space-y-4">
                   {designs.map((design) => (
                     <div key={design.id} className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-lg mb-1">{design.design_name}</h4>
                       <p className="text-sm text-gray-600 mb-2">{design.prompt}</p>
                       {(design.generated_image_url || design.generated_image_path) && (
                         <img
@@ -174,8 +275,13 @@ const ProjectDetail = () => {
                         className="w-full"
                       >
                         <FileText className="w-4 h-4 mr-2" />
-                        Generate Execution Plan
+                        {design.execution_plan ? 'Regenerate Execution Plan' : 'Generate Execution Plan'}
                       </Button>
+                      {design.execution_plan && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
+                          <p className="text-gray-600">Duration: <span className="font-semibold">{design.execution_plan.total_duration}</span></p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -188,54 +294,128 @@ const ProjectDetail = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Package className="w-5 h-5 mr-2" />
-                Materials Required
+                Materials by Design
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {materials.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No materials yet. Generate a design first!</p>
+              {designs.length === 0 ? (
+                <p className="text-gray-600 text-center py-8">No designs yet. Generate a design first!</p>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {materials.map((material) => (
-                    <div key={material.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                      <div>
-                        <p className="font-medium text-sm">{material.description}</p>
-                        <p className="text-xs text-gray-600">{material.quantity} {material.unit}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-600 capitalize">{material.status}</p>
-                        {material.estimated_cost && (
-                          <p className="text-sm font-semibold">${material.estimated_cost}</p>
+                <>
+                  {/* Design Buttons */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {designs.map((design) => (
+                      <Button
+                        key={design.id}
+                        size="sm"
+                        variant={selectedDesignForMaterials === design.id ? 'primary' : 'outline'}
+                        onClick={() => setSelectedDesignForMaterials(
+                          selectedDesignForMaterials === design.id ? null : design.id
                         )}
-                      </div>
+                      >
+                        {design.design_name}
+                        {design.materials && design.materials.length > 0 && (
+                          <span className="ml-1 text-xs">({design.materials.length})</span>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  {/* Materials for Selected Design */}
+                  {selectedDesignForMaterials && (
+                    <div className="space-y-2 max-h-96 overflow-y-auto border-t pt-4">
+                      {(() => {
+                        const selectedDesign = designs.find(d => d.id === selectedDesignForMaterials);
+                        const designMaterials = selectedDesign?.materials || [];
+                        return designMaterials.length === 0 ? (
+                          <p className="text-gray-600 text-center py-4">No materials for this design.</p>
+                        ) : (
+                          <>
+                            <p className="text-sm font-semibold mb-2">{selectedDesign.design_name} Materials:</p>
+                            {designMaterials.map((material) => (
+                              <div key={material.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                <div>
+                                  <p className="font-medium text-sm">{material.description}</p>
+                                  <p className="text-xs text-gray-600">{material.quantity} {material.unit}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-600 capitalize">{material.status}</p>
+                                  {material.estimated_cost && (
+                                    <p className="text-sm font-semibold">${material.estimated_cost}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        );
+                      })()}
                     </div>
-                  ))}
-                </div>
+                  )}
+                  
+                  {!selectedDesignForMaterials && (
+                    <p className="text-gray-500 text-center py-4 text-sm">Click a design button above to view its materials</p>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
 
-          {/* Execution Plan */}
+          {/* Execution Plans by Design - One tile per design (aggregated) */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Clock className="w-5 h-5 mr-2" />
-                Execution Plan
+                Execution Plans
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!executionPlan ? (
-                <p className="text-gray-600 text-center py-8">No execution plan yet. Generate a design and create an execution plan!</p>
+              {designs.length === 0 || designs.every(d => !d.aggregated_execution_plan || d.aggregated_execution_plan.total_labour_days === 0) ? (
+                <p className="text-gray-600 text-center py-8">No execution plans yet. Generate a design and create execution plans!</p>
               ) : (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Duration</p>
-                    <p className="font-semibold">{executionPlan.total_duration}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Summary</p>
-                    <p className="text-sm">{executionPlan.project_summary}</p>
-                  </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {designs.filter(d => d.aggregated_execution_plan && d.aggregated_execution_plan.total_labour_days > 0).map((design) => (
+                    <div key={design.id} className="border rounded-lg p-4 bg-white">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-lg">{design.design_name}</h3>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                          {design.aggregated_execution_plan.categories_count} categories
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Total Duration:</span>
+                          <span className="font-medium">{design.aggregated_execution_plan.calculated_duration}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Progress:</span>
+                          <span className="font-medium">
+                            {design.aggregated_execution_plan.total_progress_days.toFixed(1)} / {design.aggregated_execution_plan.total_labour_days} days
+                          </span>
+                        </div>
+                        
+                        {/* Progress bar */}
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            style={{ 
+                              width: `${Math.min(100, (design.aggregated_execution_plan.total_progress_days / 
+                                design.aggregated_execution_plan.total_labour_days * 100) || 0)}%` 
+                            }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenExecutionDialog(design)}
+                        className="w-full flex items-center justify-center gap-1"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                        View Timeline
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -253,19 +433,57 @@ const ProjectDetail = () => {
               {bids.length === 0 ? (
                 <p className="text-gray-600 text-center py-8">No bids yet. Suppliers will bid on your materials!</p>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {bids.map((bid) => (
-                    <div key={bid.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                      <div>
-                        <p className="font-medium text-sm">{bid.supplier_name}</p>
-                        {bid.company_name && (
-                          <p className="text-xs text-gray-600">{bid.company_name}</p>
-                        )}
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {bids.filter(bid => bid.status !== 'rejected').map((bid) => (
+                    <div key={bid.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{bid.supplier_name}</p>
+                            {bid.company_name && (
+                              <span className="text-xs text-gray-600">({bid.company_name})</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-sm font-semibold text-blue-600">
+                              {bid.design_name || 'Unknown Design'}
+                            </span>
+                            <span className="text-xs bg-gray-100 px-2 py-1 rounded capitalize">
+                              {bid.category}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">${bid.price}</p>
+                          <p className="text-xs text-gray-600">{bid.estimated_delivery_days} days</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">${bid.price}</p>
-                        <p className="text-xs capitalize text-gray-600">{bid.status}</p>
-                      </div>
+                      
+                      {bid.status === 'pending' ? (
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 bg-red-50 hover:bg-red-100 text-red-700"
+                            onClick={() => handleRejectBid(bid.id)}
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            onClick={() => handleAcceptBid(bid.id)}
+                          >
+                            Accept
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="mt-2">
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium capitalize bg-green-100 text-green-700">
+                            Accepted
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -304,6 +522,19 @@ const ProjectDetail = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Design Name
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={designName}
+              onChange={(e) => setDesignName(e.target.value)}
+              placeholder="Enter a name for this design (e.g., 'Master Bedroom Modern')"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Design Prompt
             </label>
             <textarea
@@ -329,6 +560,99 @@ const ProjectDetail = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Execution Plan Timeline Dialog */}
+      <Modal
+        isOpen={isExecutionDialogOpen}
+        onClose={() => {
+          setIsExecutionDialogOpen(false);
+          setSelectedDesign(null);
+          setExecutionPlanDetails(null);
+          setProgressLogs([]);
+        }}
+        title={`${selectedDesign ? `${selectedDesign.design_name} - Execution Timeline` : 'Execution Plan'}`}
+      >
+        {loadingExecutionDetails ? (
+          <div className="text-center py-8">Loading...</div>
+        ) : executionPlanDetails ? (
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+            {/* Charts Section */}
+            <ExecutionPlanCharts 
+              plan={executionPlanDetails} 
+              progressLogs={progressLogs} 
+            />
+
+            {/* Log Progress Form */}
+            <div className="border-t pt-4 bg-gray-50 rounded-lg p-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                Log Progress
+              </h3>
+              <form onSubmit={handleLogProgress} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Days Logged</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={progressForm.days_logged}
+                      onChange={(e) => setProgressForm({ ...progressForm, days_logged: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="e.g., 2.5"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phase (Optional)</label>
+                    <input
+                      type="text"
+                      value={progressForm.phase}
+                      onChange={(e) => setProgressForm({ ...progressForm, phase: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="e.g., Painting"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={progressForm.description}
+                    onChange={(e) => setProgressForm({ ...progressForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    rows="3"
+                    placeholder="Describe the work completed..."
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full">Log Progress</Button>
+              </form>
+            </div>
+
+            {/* Progress History */}
+            {progressLogs.length > 0 && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3">Progress History</h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {progressLogs.slice().reverse().map((log, index) => (
+                    <div key={index} className="bg-gray-50 rounded-lg p-3 text-sm">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium">{log.days_logged} days</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(log.logged_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {log.phase && <span className="text-xs text-blue-600 mb-1 block">{log.phase}</span>}
+                      <p className="text-gray-600">{log.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">No execution plan details available</div>
+        )}
       </Modal>
     </div>
   );

@@ -47,6 +47,7 @@ def parse_execution_plan_markdown(markdown_text: str) -> Dict[str, Any]:
     plan = {
         'project_summary': '',
         'time_required': {},
+        'categories': [],
         'phases': [],
         'labour': [],
         'material_usage': [],
@@ -67,6 +68,8 @@ def parse_execution_plan_markdown(markdown_text: str) -> Dict[str, Any]:
                 current_section = 'project_summary'
             elif 'time required' in current_section:
                 current_section = 'time_required'
+            elif 'categories' in current_section:
+                current_section = 'categories'
             elif 'phase-wise' in current_section:
                 current_section = 'phases'
             elif 'labour required' in current_section:
@@ -90,6 +93,28 @@ def parse_execution_plan_markdown(markdown_text: str) -> Dict[str, Any]:
                 if len(values) == len(table_headers) and values[0]:
                     key = values[0].replace('**', '').strip()
                     plan['time_required'][key] = values[1].strip()
+                    
+        elif current_section == 'categories':
+            if '|' in line and 'Category' in line:
+                table_headers = [h.strip().lower() for h in line.split('|')[1:-1]]
+            elif '|' in line and table_headers and ':' not in line.replace('|', '').replace('-', '').replace(' ', ''):
+                values = [v.strip() for v in line.split('|')[1:-1]]
+                if len(values) == len(table_headers) and values[0]:
+                    category = {}
+                    for i, header in enumerate(table_headers):
+                        category[header] = values[i]
+                    # Extract category name and days
+                    category_name = category.get('category', values[0]).lower()
+                    days_str = category.get('estimated days', category.get('days', '0'))
+                    try:
+                        days = float(days_str)
+                    except:
+                        days = 0
+                    plan['categories'].append({
+                        'category': category_name,
+                        'days': days,
+                        'notes': category.get('notes', '')
+                    })
                     
         elif current_section == 'phases':
             if '|' in line and 'Phase' in line:
