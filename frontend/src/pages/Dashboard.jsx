@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { dashboardAPI, authAPI } from '../services/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import ThemeToggle from '../components/ui/ThemeToggle';
 import { 
   LayoutDashboard, 
   Plus, 
@@ -10,7 +11,8 @@ import {
   Package, 
   Users, 
   LogOut,
-  TrendingUp
+  TrendingUp,
+  DollarSign
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -48,24 +50,29 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-bg flex items-center justify-center">
+        <div className="text-xl text-gray-600 dark:text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-200">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-dark-surface shadow-sm border-b border-gray-200 dark:border-dark-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <LayoutDashboard className="w-8 h-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Interior Design System</h1>
+              <div className="bg-primary-600 p-2 rounded-lg">
+                <LayoutDashboard className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Interior Design System</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {user?.name}</span>
+              <ThemeToggle />
+              <div className="hidden md:block text-sm text-gray-600 dark:text-gray-400">
+                Welcome, <span className="font-semibold text-gray-900 dark:text-white">{user?.name}</span>
+              </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -76,60 +83,78 @@ const Dashboard = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Welcome back, {user?.name}!
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Here's what's happening with your interior design projects
+          </p>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Projects</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Projects</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
                     {stats?.total_projects || 0}
                   </p>
                 </div>
-                <FolderOpen className="w-12 h-12 text-blue-600 opacity-20" />
+                <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
+                  <FolderOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Active Projects</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Projects</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
                     {stats?.active_projects || 0}
                   </p>
                 </div>
-                <TrendingUp className="w-12 h-12 text-green-600 opacity-20" />
+                <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl">
+                  <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Materials</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Materials</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
                     {stats?.total_materials || 0}
                   </p>
                 </div>
-                <Package className="w-12 h-12 text-purple-600 opacity-20" />
+                <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-xl">
+                  <Package className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Estimated Cost</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Estimated Cost</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
                     ${stats?.estimated_cost?.toFixed(2) || '0'}
                   </p>
                 </div>
-                <Users className="w-12 h-12 text-orange-600 opacity-20" />
+                <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl">
+                  <DollarSign className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -137,44 +162,44 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/projects')}>
+          <Card className="cursor-pointer hover:shadow-xl transition-all duration-200 group" onClick={() => navigate('/projects')}>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <Plus className="w-6 h-6 text-blue-600" />
+                <div className="bg-primary-100 dark:bg-primary-900/30 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                  <Plus className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">New Project</h3>
-                  <p className="text-sm text-gray-600">Create a new design project</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">New Project</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Create a new design project</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/projects')}>
+          <Card className="cursor-pointer hover:shadow-xl transition-all duration-200 group" onClick={() => navigate('/projects')}>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="bg-green-100 p-3 rounded-lg">
-                  <FolderOpen className="w-6 h-6 text-green-600" />
+                <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                  <FolderOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">View Projects</h3>
-                  <p className="text-sm text-gray-600">Manage your existing projects</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">View Projects</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Manage your existing projects</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {user?.role === 'supplier' && (
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/suppliers')}>
+            <Card className="cursor-pointer hover:shadow-xl transition-all duration-200 group" onClick={() => navigate('/suppliers')}>
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-purple-100 p-3 rounded-lg">
-                    <Package className="w-6 h-6 text-purple-600" />
+                  <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                    <Package className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Supplier Portal</h3>
-                    <p className="text-sm text-gray-600">Manage bids and catalog</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Supplier Portal</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Manage bids and catalog</p>
                   </div>
                 </div>
               </CardContent>
@@ -189,24 +214,36 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             {recentProjects.length === 0 ? (
-              <p className="text-gray-600 text-center py-8">No projects yet. Create your first project!</p>
+              <div className="text-center py-12">
+                <FolderOpen className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 mb-4">No projects yet</p>
+                <Button onClick={() => navigate('/projects')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Project
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 {recentProjects.map((project) => (
                   <div
                     key={project.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer group"
                     onClick={() => navigate(`/projects/${project.id}`)}
                   >
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{project.name}</h4>
-                      <p className="text-sm text-gray-600">
-                        Status: <span className="capitalize">{project.status}</span>
-                      </p>
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-primary-100 dark:bg-primary-900/30 p-2 rounded-lg">
+                        <FolderOpen className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{project.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Status: <span className="capitalize font-medium">{project.status}</span>
+                        </p>
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-600">Progress</p>
-                      <p className="font-semibold text-gray-900">{project.progress}%</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Progress</p>
+                      <p className="font-bold text-gray-900 dark:text-white">{project.progress}%</p>
                     </div>
                   </div>
                 ))}

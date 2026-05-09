@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ExecutionPlanCharts from '../components/ExecutionPlanCharts';
 import { ArrowLeft, Upload, Wand2, FileText, Clock, Users, Package, Smartphone, PlayCircle, TrendingUp, BarChart3 } from 'lucide-react';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -29,6 +30,8 @@ const ProjectDetail = () => {
   const [progressLogs, setProgressLogs] = useState([]);
   const [progressForm, setProgressForm] = useState({ days_logged: '', description: '', phase: '' });
   const [loadingExecutionDetails, setLoadingExecutionDetails] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -181,6 +184,11 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleOpenImageModal = (imageUrl, designName) => {
+    setSelectedImage({ url: imageUrl, name: designName });
+    setIsImageModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -190,9 +198,9 @@ const ProjectDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-200">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-dark-surface shadow-sm border-b border-gray-200 dark:border-dark-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -200,9 +208,10 @@ const ProjectDetail = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <h1 className="text-2xl font-bold text-gray-900">{project?.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{project?.name}</h1>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex items-center space-x-3">
+              <ThemeToggle />
               <Button onClick={() => setIsDesignModalOpen(true)}>
                 <Wand2 className="w-4 h-4 mr-2" />
                 Generate Design
@@ -220,24 +229,24 @@ const ProjectDetail = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Project Info */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div>
-                <p className="text-sm text-gray-600">Status</p>
-                <p className="font-semibold capitalize">{project?.status}</p>
+                <p className="text-sm font-medium text-primary-100">Status</p>
+                <p className="font-semibold capitalize text-lg">{project?.status}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Progress</p>
-                <p className="font-semibold">{project?.progress}%</p>
+                <p className="text-sm font-medium text-primary-100">Progress</p>
+                <p className="font-semibold text-lg">{project?.progress}%</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Budget</p>
-                <p className="font-semibold">${project?.budget || 'Not set'}</p>
+                <p className="text-sm font-medium text-primary-100">Budget</p>
+                <p className="font-semibold text-lg">${project?.budget || 'Not set'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Room Type</p>
-                <p className="font-semibold">{project?.room_type || 'Not specified'}</p>
+                <p className="text-sm font-medium text-primary-100">Room Type</p>
+                <p className="font-semibold text-lg">{project?.room_type || 'Not specified'}</p>
               </div>
             </div>
           </CardContent>
@@ -245,28 +254,42 @@ const ProjectDetail = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Designs */}
-          <Card>
+          <Card className="hover:shadow-xl transition-all duration-200">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Wand2 className="w-5 h-5 mr-2" />
+              <CardTitle className="flex items-center text-gray-900 dark:text-white">
+                <Wand2 className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
                 Generated Designs
               </CardTitle>
             </CardHeader>
             <CardContent>
               {designs.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No designs yet. Generate your first design!</p>
+                <div className="text-center py-12">
+                  <div className="bg-primary-100 dark:bg-primary-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Wand2 className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No designs yet</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">Generate your first design to get started!</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {designs.map((design) => (
-                    <div key={design.id} className="border rounded-lg p-4">
-                      <h4 className="font-semibold text-lg mb-1">{design.design_name}</h4>
-                      <p className="text-sm text-gray-600 mb-2">{design.prompt}</p>
+                    <div key={design.id} className="border border-gray-200 dark:border-dark-border rounded-xl p-4 hover:shadow-lg transition-shadow">
+                      <h4 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">{design.design_name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{design.prompt}</p>
                       {(design.generated_image_url || design.generated_image_path) && (
-                        <img
-                          src={design.generated_image_url || `http://localhost:5000${design.generated_image_path}`}
-                          alt="Generated design"
-                          className="w-full h-48 object-cover rounded mb-2"
-                        />
+                        <div 
+                          className="relative cursor-pointer group"
+                          onClick={() => handleOpenImageModal(design.generated_image_url || `http://localhost:5000${design.generated_image_path}`, design.design_name)}
+                        >
+                          <img
+                            src={design.generated_image_url || `http://localhost:5000${design.generated_image_path}`}
+                            alt="Generated design"
+                            className="w-full h-48 object-cover rounded-lg mb-3 transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-lg flex items-center justify-center">
+                            <span className="text-white opacity-0 group-hover:opacity-100 font-medium">Click to view</span>
+                          </div>
+                        </div>
                       )}
                       <Button
                         size="sm"
@@ -278,8 +301,8 @@ const ProjectDetail = () => {
                         {design.execution_plan ? 'Regenerate Execution Plan' : 'Generate Execution Plan'}
                       </Button>
                       {design.execution_plan && (
-                        <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                          <p className="text-gray-600">Duration: <span className="font-semibold">{design.execution_plan.total_duration}</span></p>
+                        <div className="mt-2 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-sm">
+                          <p className="text-gray-700 dark:text-gray-300">Duration: <span className="font-semibold text-gray-900 dark:text-white">{design.execution_plan.total_duration}</span></p>
                         </div>
                       )}
                     </div>
@@ -290,16 +313,22 @@ const ProjectDetail = () => {
           </Card>
 
           {/* Materials */}
-          <Card>
+          <Card className="hover:shadow-xl transition-all duration-200">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Package className="w-5 h-5 mr-2" />
+              <CardTitle className="flex items-center text-gray-900 dark:text-white">
+                <Package className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
                 Materials by Design
               </CardTitle>
             </CardHeader>
             <CardContent>
               {designs.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No designs yet. Generate a design first!</p>
+                <div className="text-center py-12">
+                  <div className="bg-purple-100 dark:bg-purple-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Package className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No designs yet</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">Generate a design first to view materials!</p>
+                </div>
               ) : (
                 <>
                   {/* Design Buttons */}
@@ -323,25 +352,25 @@ const ProjectDetail = () => {
                   
                   {/* Materials for Selected Design */}
                   {selectedDesignForMaterials && (
-                    <div className="space-y-2 max-h-96 overflow-y-auto border-t pt-4">
+                    <div className="space-y-2 max-h-96 overflow-y-auto border-t border-gray-200 dark:border-dark-border pt-4">
                       {(() => {
                         const selectedDesign = designs.find(d => d.id === selectedDesignForMaterials);
                         const designMaterials = selectedDesign?.materials || [];
                         return designMaterials.length === 0 ? (
-                          <p className="text-gray-600 text-center py-4">No materials for this design.</p>
+                          <p className="text-gray-600 dark:text-gray-400 text-center py-4">No materials for this design.</p>
                         ) : (
                           <>
-                            <p className="text-sm font-semibold mb-2">{selectedDesign.design_name} Materials:</p>
+                            <p className="text-sm font-semibold mb-2 text-gray-900 dark:text-white">{selectedDesign.design_name} Materials:</p>
                             {designMaterials.map((material) => (
-                              <div key={material.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <div key={material.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                                 <div>
-                                  <p className="font-medium text-sm">{material.description}</p>
-                                  <p className="text-xs text-gray-600">{material.quantity} {material.unit}</p>
+                                  <p className="font-medium text-sm text-gray-900 dark:text-white">{material.description}</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">{material.quantity} {material.unit}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-xs text-gray-600 capitalize">{material.status}</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{material.status}</p>
                                   {material.estimated_cost && (
-                                    <p className="text-sm font-semibold">${material.estimated_cost}</p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">${material.estimated_cost}</p>
                                   )}
                                 </div>
                               </div>
@@ -353,7 +382,7 @@ const ProjectDetail = () => {
                   )}
                   
                   {!selectedDesignForMaterials && (
-                    <p className="text-gray-500 text-center py-4 text-sm">Click a design button above to view its materials</p>
+                    <p className="text-gray-500 dark:text-gray-500 text-center py-4 text-sm">Click a design button above to view its materials</p>
                   )}
                 </>
               )}
@@ -361,43 +390,49 @@ const ProjectDetail = () => {
           </Card>
 
           {/* Execution Plans by Design - One tile per design (aggregated) */}
-          <Card>
+          <Card className="hover:shadow-xl transition-all duration-200">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Clock className="w-5 h-5 mr-2" />
+              <CardTitle className="flex items-center text-gray-900 dark:text-white">
+                <Clock className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
                 Execution Plans
               </CardTitle>
             </CardHeader>
             <CardContent>
               {designs.length === 0 || designs.every(d => !d.aggregated_execution_plan || d.aggregated_execution_plan.total_labour_days === 0) ? (
-                <p className="text-gray-600 text-center py-8">No execution plans yet. Generate a design and create execution plans!</p>
+                <div className="text-center py-12">
+                  <div className="bg-green-100 dark:bg-green-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No execution plans yet</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">Generate a design and create execution plans!</p>
+                </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {designs.filter(d => d.aggregated_execution_plan && d.aggregated_execution_plan.total_labour_days > 0).map((design) => (
-                    <div key={design.id} className="border rounded-lg p-4 bg-white">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-lg">{design.design_name}</h3>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                    <div key={design.id} className="border border-gray-200 dark:border-dark-border rounded-xl p-4 bg-white dark:bg-dark-surface hover:shadow-lg transition-shadow">
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{design.design_name}</h3>
+                        <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded text-xs font-medium">
                           {design.aggregated_execution_plan.categories_count} categories
                         </span>
                       </div>
                       
                       <div className="space-y-2 mb-4">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Total Duration:</span>
-                          <span className="font-medium">{design.aggregated_execution_plan.calculated_duration}</span>
+                          <span className="text-gray-600 dark:text-gray-400">Total Duration:</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{design.aggregated_execution_plan.calculated_duration}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Progress:</span>
-                          <span className="font-medium">
+                          <span className="text-gray-600 dark:text-gray-400">Progress:</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
                             {design.aggregated_execution_plan.total_progress_days.toFixed(1)} / {design.aggregated_execution_plan.total_labour_days} days
                           </span>
                         </div>
                         
                         {/* Progress bar */}
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            className="bg-primary-600 h-2 rounded-full transition-all"
                             style={{ 
                               width: `${Math.min(100, (design.aggregated_execution_plan.total_progress_days / 
                                 design.aggregated_execution_plan.total_labour_days * 100) || 0)}%` 
@@ -422,40 +457,46 @@ const ProjectDetail = () => {
           </Card>
 
           {/* Bids */}
-          <Card>
+          <Card className="hover:shadow-xl transition-all duration-200">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="w-5 h-5 mr-2" />
+              <CardTitle className="flex items-center text-gray-900 dark:text-white">
+                <Users className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
                 Supplier Bids
               </CardTitle>
             </CardHeader>
             <CardContent>
               {bids.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No bids yet. Suppliers will bid on your materials!</p>
+                <div className="text-center py-12">
+                  <div className="bg-orange-100 dark:bg-orange-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No bids yet</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">Suppliers will bid on your materials!</p>
+                </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {bids.filter(bid => bid.status !== 'rejected').map((bid) => (
-                    <div key={bid.id} className="border rounded-lg p-4">
+                    <div key={bid.id} className="border border-gray-200 dark:border-dark-border rounded-xl p-4 hover:shadow-lg transition-shadow">
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-medium">{bid.supplier_name}</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{bid.supplier_name}</p>
                             {bid.company_name && (
-                              <span className="text-xs text-gray-600">({bid.company_name})</span>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">({bid.company_name})</span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-sm font-semibold text-blue-600">
+                            <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">
                               {bid.design_name || 'Unknown Design'}
                             </span>
-                            <span className="text-xs bg-gray-100 px-2 py-1 rounded capitalize">
+                            <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded capitalize text-gray-700 dark:text-gray-300">
                               {bid.category}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold">${bid.price}</p>
-                          <p className="text-xs text-gray-600">{bid.estimated_delivery_days} days</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">${bid.price}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{bid.estimated_delivery_days} days</p>
                         </div>
                       </div>
                       
@@ -464,14 +505,14 @@ const ProjectDetail = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="flex-1 bg-red-50 hover:bg-red-100 text-red-700"
+                            className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400"
                             onClick={() => handleRejectBid(bid.id)}
                           >
                             Reject
                           </Button>
                           <Button
                             size="sm"
-                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            className="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
                             onClick={() => handleAcceptBid(bid.id)}
                           >
                             Accept
@@ -479,7 +520,7 @@ const ProjectDetail = () => {
                         </div>
                       ) : (
                         <div className="mt-2">
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium capitalize bg-green-100 text-green-700">
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium capitalize bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                             Accepted
                           </span>
                         </div>
@@ -653,6 +694,36 @@ const ProjectDetail = () => {
         ) : (
           <div className="text-center py-8 text-gray-500">No execution plan details available</div>
         )}
+      </Modal>
+
+      {/* Image Viewer Modal */}
+      <Modal
+        isOpen={isImageModalOpen}
+        onClose={() => {
+          setIsImageModalOpen(false);
+          setSelectedImage(null);
+        }}
+        title={selectedImage?.name || 'Design Image'}
+      >
+        <div className="flex flex-col items-center">
+          {selectedImage?.url && (
+            <img
+              src={selectedImage.url}
+              alt={selectedImage.name}
+              className="max-w-full max-h-[70vh] rounded-lg object-contain"
+            />
+          )}
+          <Button
+            variant="secondary"
+            className="mt-4"
+            onClick={() => {
+              setIsImageModalOpen(false);
+              setSelectedImage(null);
+            }}
+          >
+            Close
+          </Button>
+        </div>
       </Modal>
     </div>
   );

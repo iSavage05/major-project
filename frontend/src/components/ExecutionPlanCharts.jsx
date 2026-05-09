@@ -219,19 +219,19 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
       )}
 
       {/* Expected vs Actual Timeline - Side by Side Gantt Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {/* Expected Timeline (Static - from category_summary) */}
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="w-5 h-5 text-blue-600" />
-            <h4 className="font-semibold text-gray-800">Expected Timeline</h4>
-            <span className="text-xs text-gray-500 ml-auto">{stats?.totalExpected} days total</span>
+            <Target className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+            <h4 className="font-semibold text-gray-900 dark:text-white">Expected Timeline</h4>
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{stats?.totalExpected} days total</span>
           </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={expectedTimelineData} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
-              <XAxis type="number" label={{ value: 'Days from Start', position: 'insideBottom', offset: -5 }} />
-              <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={expectedTimelineData} layout="vertical" margin={{ top: 10, right: 50, left: 120, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} horizontal={false} />
+              <XAxis type="number" label={{ value: 'Days from Start', position: 'insideBottom', offset: -5, fill: '#6b7280' }} tick={{ fill: '#6b7280' }} />
+              <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12, fill: '#6b7280' }} />
               <Tooltip 
                 contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 formatter={(value, name, props) => {
@@ -247,26 +247,26 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          <p className="text-xs text-gray-500 mt-2 text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
             Based on categories: {stats?.categoryCount} categories
           </p>
         </div>
 
         {/* Actual Timeline (Dynamic - from logged progress) */}
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Layers className="w-5 h-5 text-green-600" />
-            <h4 className="font-semibold text-gray-800">Actual Timeline</h4>
-            <span className="text-xs text-gray-500 ml-auto">
+            <Layers className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <h4 className="font-semibold text-gray-900 dark:text-white">Actual Timeline</h4>
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
               {actualTimelineData.length > 0 ? `${actualTimelineData[actualTimelineData.length - 1]?.endDay || 0} days logged` : 'No work logged'}
             </span>
           </div>
           {actualTimelineData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={actualTimelineData} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
-                <XAxis type="number" label={{ value: 'Days from Start', position: 'insideBottom', offset: -5 }} />
-                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={actualTimelineData} layout="vertical" margin={{ top: 10, right: 50, left: 120, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} horizontal={false} />
+                <XAxis type="number" label={{ value: 'Days from Start', position: 'insideBottom', offset: -5, fill: '#6b7280' }} tick={{ fill: '#6b7280' }} />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12, fill: '#6b7280' }} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                   formatter={(value, name, props) => {
@@ -286,7 +286,7 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[250px] flex items-center justify-center text-gray-400 bg-gray-50 rounded">
+            <div className="h-[300px] flex items-center justify-center text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
               <div className="text-center">
                 <Layers className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No progress logged yet</p>
@@ -294,7 +294,7 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
               </div>
             </div>
           )}
-          <p className="text-xs text-gray-500 mt-2 text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
             Updates in real-time as work is logged
           </p>
         </div>

@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { ArrowLeft, Plus, DollarSign, Package, CheckCircle, FolderOpen, Tag, X } from 'lucide-react';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 const Suppliers = () => {
   const navigate = useNavigate();
@@ -136,9 +137,9 @@ const Suppliers = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-200">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-dark-surface shadow-sm border-b border-gray-200 dark:border-dark-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -146,12 +147,15 @@ const Suppliers = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <h1 className="text-2xl font-bold text-gray-900">Supplier Portal</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Supplier Portal</h1>
             </div>
-            <Button onClick={() => setIsCatalogModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add to Catalog
-            </Button>
+            <div className="flex items-center space-x-3">
+              <ThemeToggle />
+              <Button onClick={() => setIsCatalogModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add to Catalog
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -159,24 +163,30 @@ const Suppliers = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Available Designs for Bidding */}
-          <Card>
+          <Card className="hover:shadow-xl transition-all duration-200">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <FolderOpen className="w-5 h-5 mr-2" />
+              <CardTitle className="flex items-center text-gray-900 dark:text-white">
+                <FolderOpen className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
                 Available Designs for Bidding
               </CardTitle>
             </CardHeader>
             <CardContent>
               {availableDesigns.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No designs available for bidding at the moment.</p>
+                <div className="text-center py-12">
+                  <div className="bg-primary-100 dark:bg-primary-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FolderOpen className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No designs available</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">Check back later for new bidding opportunities</p>
+                </div>
               ) : !selectedDesign ? (
                 // Show Design List
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {availableDesigns.map((design) => (
-                    <div key={design.id} className="border rounded-lg p-4">
-                      <h4 className="font-semibold text-lg">{design.design_name}</h4>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{design.prompt}</p>
-                      <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
+                    <div key={design.id} className="border border-gray-200 dark:border-dark-border rounded-xl p-4 hover:shadow-lg transition-shadow">
+                      <h4 className="font-semibold text-lg text-gray-900 dark:text-white">{design.design_name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{design.prompt}</p>
+                      <div className="flex justify-between items-center mt-2 text-sm text-gray-600 dark:text-gray-400">
                         <span>{design.materials_count} materials</span>
                         <span className="capitalize">{design.categories?.length || 0} categories</span>
                       </div>
@@ -194,7 +204,7 @@ const Suppliers = () => {
                 // Show Categories for Selected Design
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold">{selectedDesign.design_name} - Categories</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{selectedDesign.design_name} - Categories</h3>
                     <Button
                       size="sm"
                       variant="outline"
@@ -210,25 +220,25 @@ const Suppliers = () => {
                   </div>
                   
                   {designCategories.length === 0 ? (
-                    <p className="text-gray-600 text-center py-8">No categories available for this design.</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-center py-8">No categories available for this design.</p>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {designCategories.map((category) => (
-                        <div key={category.category} className="border rounded-lg p-4">
+                        <div key={category.category} className="border border-gray-200 dark:border-dark-border rounded-xl p-4 hover:shadow-lg transition-shadow">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <Tag className="w-4 h-4 mr-2 text-blue-500" />
-                              <h4 className="font-semibold capitalize">{category.category}</h4>
+                              <Tag className="w-4 h-4 mr-2 text-primary-500" />
+                              <h4 className="font-semibold capitalize text-gray-900 dark:text-white">{category.category}</h4>
                             </div>
-                            <span className="text-sm text-gray-600">{category.count} items</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{category.count} items</span>
                           </div>
                           
                           {category.existing_bid ? (
-                            <div className="mt-3 p-2 bg-gray-100 rounded">
-                              <p className="text-sm">
-                                <span className="font-medium">Your bid:</span> ${category.existing_bid.price}
+                            <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="font-medium text-gray-900 dark:text-white">Your bid:</span> ${category.existing_bid.price}
                               </p>
-                              <p className="text-xs text-gray-600 capitalize">
+                              <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">
                                 Status: {category.existing_bid.status}
                               </p>
                             </div>
@@ -263,38 +273,44 @@ const Suppliers = () => {
           </Card>
 
           {/* My Bids */}
-          <Card>
+          <Card className="hover:shadow-xl transition-all duration-200">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <DollarSign className="w-5 h-5 mr-2" />
+              <CardTitle className="flex items-center text-gray-900 dark:text-white">
+                <DollarSign className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
                 My Bids
               </CardTitle>
             </CardHeader>
             <CardContent>
               {myBids.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">You haven't placed any bids yet.</p>
+                <div className="text-center py-12">
+                  <div className="bg-green-100 dark:bg-green-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DollarSign className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No bids yet</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">Place your first bid to get started!</p>
+                </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {myBids.map((bid) => (
-                    <div key={bid.id} className="border rounded-lg p-4">
-                      <h4 className="font-semibold">{bid.design_name}</h4>
+                    <div key={bid.id} className="border border-gray-200 dark:border-dark-border rounded-xl p-4 hover:shadow-lg transition-shadow">
+                      <h4 className="font-semibold text-gray-900 dark:text-white">{bid.design_name}</h4>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm capitalize bg-gray-100 px-2 py-1 rounded">
+                        <span className="text-sm capitalize bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-700 dark:text-gray-300">
                           {bid.category}
                         </span>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
                           {bid.materials_count} materials
                         </span>
                       </div>
                       <div className="flex justify-between items-center mt-3">
                         <div>
-                          <p className="font-semibold">${bid.price}</p>
-                          <p className="text-xs text-gray-600">{bid.estimated_delivery_days} days delivery</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">${bid.price}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{bid.estimated_delivery_days} days delivery</p>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
-                          bid.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                          bid.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
+                          bid.status === 'accepted' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          bid.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                          'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                         }`}>
                           {bid.status}
                         </span>
