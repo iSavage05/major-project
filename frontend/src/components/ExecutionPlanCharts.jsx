@@ -174,7 +174,7 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
 
   if (!categoryData.length) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
         No category data available for visualization. Generate execution plans to see category timelines.
       </div>
     );
@@ -185,33 +185,33 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
       {/* Statistics Cards */}
       {stats && (
         <div className="grid grid-cols-4 gap-3">
-          <div className="bg-blue-50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-blue-700 mb-1">
+          <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 mb-1">
               <Calendar className="w-4 h-4" />
               <span className="text-xs font-medium">Expected Duration</span>
             </div>
-            <p className="text-xl font-bold text-blue-900">{stats.totalExpected} days</p>
+            <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{stats.totalExpected} days</p>
           </div>
-          <div className="bg-green-50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-green-700 mb-1">
+          <div className="bg-green-50 dark:bg-green-500/10 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-1">
               <CheckCircle className="w-4 h-4" />
               <span className="text-xs font-medium">Actual Work</span>
             </div>
-            <p className="text-xl font-bold text-green-900">{stats.totalActual.toFixed(1)} days</p>
+            <p className="text-xl font-bold text-green-900 dark:text-green-100">{stats.totalActual.toFixed(1)} days</p>
           </div>
-          <div className="bg-purple-50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-purple-700 mb-1">
+          <div className="bg-purple-50 dark:bg-purple-500/10 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-purple-700 dark:text-purple-400 mb-1">
               <TrendingUp className="w-4 h-4" />
               <span className="text-xs font-medium">Completion</span>
             </div>
-            <p className="text-xl font-bold text-purple-900">{stats.completion}%</p>
+            <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{stats.completion}%</p>
           </div>
-          <div className={`${stats.isAhead ? 'bg-emerald-50' : 'bg-amber-50'} rounded-lg p-3`}>
-            <div className={`flex items-center gap-2 ${stats.isAhead ? 'text-emerald-700' : 'text-amber-700'} mb-1`}>
+          <div className={`${stats.isAhead ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-amber-50 dark:bg-amber-500/10'} rounded-lg p-3`}>
+            <div className={`flex items-center gap-2 ${stats.isAhead ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'} mb-1`}>
               <Clock className="w-4 h-4" />
               <span className="text-xs font-medium">{stats.isAhead ? 'Ahead' : 'Behind'}</span>
             </div>
-            <p className={`text-xl font-bold ${stats.isAhead ? 'text-emerald-900' : 'text-amber-900'}`}>
+            <p className={`text-xl font-bold ${stats.isAhead ? 'text-emerald-900 dark:text-emerald-100' : 'text-amber-900 dark:text-amber-100'}`}>
               {Math.abs(stats.variance).toFixed(1)} days
             </p>
           </div>
@@ -221,19 +221,19 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
       {/* Expected vs Actual Timeline - Side by Side Gantt Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Expected Timeline (Static - from category_summary) */}
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-4">
             <Target className="w-5 h-5 text-blue-600" />
-            <h4 className="font-semibold text-gray-800">Expected Timeline</h4>
+            <h4 className="font-semibold text-gray-800 dark:text-gray-200">Expected Timeline</h4>
             <span className="text-xs text-gray-500 ml-auto">{stats?.totalExpected} days total</span>
           </div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={expectedTimelineData} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
-              <XAxis type="number" label={{ value: 'Days from Start', position: 'insideBottom', offset: -5 }} />
-              <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity="0.1" horizontal={false} />
+              <XAxis type="number" label={{ value: 'Days from Start', position: 'insideBottom', offset: -5, fill: 'currentColor' }} tick={{ fill: 'currentColor', fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'currentColor', fontSize: 11 }} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', border: '1px solid rgba(229, 231, 235, 0.5)', color: '#1f2937' }}
                 formatter={(value, name, props) => {
                   const data = props.payload;
                   return [`Days ${data.startDay} - ${data.endDay} (${data.duration} days)`, data.name];
@@ -253,10 +253,10 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
         </div>
 
         {/* Actual Timeline (Dynamic - from logged progress) */}
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-4">
             <Layers className="w-5 h-5 text-green-600" />
-            <h4 className="font-semibold text-gray-800">Actual Timeline</h4>
+            <h4 className="font-semibold text-gray-800 dark:text-gray-200">Actual Timeline</h4>
             <span className="text-xs text-gray-500 ml-auto">
               {actualTimelineData.length > 0 ? `${actualTimelineData[actualTimelineData.length - 1]?.endDay || 0} days logged` : 'No work logged'}
             </span>
@@ -264,11 +264,11 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
           {actualTimelineData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={actualTimelineData} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
-                <XAxis type="number" label={{ value: 'Days from Start', position: 'insideBottom', offset: -5 }} />
-                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity="0.1" horizontal={false} />
+                <XAxis type="number" label={{ value: 'Days from Start', position: 'insideBottom', offset: -5, fill: 'currentColor' }} tick={{ fill: 'currentColor', fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'currentColor', fontSize: 11 }} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', border: '1px solid rgba(229, 231, 235, 0.5)', color: '#1f2937' }}
                   formatter={(value, name, props) => {
                     const data = props.payload;
                     return [`Days ${data.startDay} - ${data.endDay} (${data.duration} days)`, data.name];
@@ -286,7 +286,7 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[250px] flex items-center justify-center text-gray-400 bg-gray-50 rounded">
+            <div className="h-[250px] flex items-center justify-center text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded">
               <div className="text-center">
                 <Layers className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No progress logged yet</p>
@@ -302,8 +302,8 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
 
       {/* Cumulative Progress Line Chart */}
       {cumulativeProgressData.length > 0 && (
-        <div className="bg-white border rounded-lg p-4">
-          <h4 className="font-semibold text-gray-800 mb-4">Cumulative Progress Over Time</h4>
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4">
+          <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-4">Cumulative Progress Over Time</h4>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={cumulativeProgressData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
@@ -312,12 +312,12 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="entry" tick={{ fontSize: 11 }} label={{ value: 'Progress Entry #', position: 'insideBottom', offset: -5 }} />
-              <YAxis yAxisId="left" label={{ value: 'Days', angle: -90, position: 'insideLeft' }} />
-              <YAxis yAxisId="right" orientation="right" label={{ value: '%', angle: -90, position: 'insideRight' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity="0.1" />
+              <XAxis dataKey="entry" tick={{ fill: 'currentColor', fontSize: 11 }} label={{ value: 'Progress Entry #', position: 'insideBottom', offset: -5, fill: 'currentColor' }} />
+              <YAxis yAxisId="left" label={{ value: 'Days', angle: -90, position: 'insideLeft', fill: 'currentColor' }} tick={{ fill: 'currentColor' }} />
+              <YAxis yAxisId="right" orientation="right" label={{ value: '%', angle: -90, position: 'insideRight', fill: 'currentColor' }} tick={{ fill: 'currentColor' }} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', border: '1px solid rgba(229, 231, 235, 0.5)', color: '#1f2937' }}
                 formatter={(value, name, props) => {
                   if (name === 'cumulative') return [`${value} days`, 'Total Days'];
                   if (name === 'percentage') return [`${value}%`, 'Completion %'];
@@ -356,8 +356,8 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
 
       {/* Category Status Pie Chart */}
       {categoryStatusData.some(d => d.value > 0) && (
-        <div className="bg-white border rounded-lg p-4">
-          <h4 className="font-semibold text-gray-800 mb-4">Category Completion Status</h4>
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4">
+          <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-4">Category Completion Status</h4>
           <div className="flex items-center justify-center">
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -384,18 +384,18 @@ const ExecutionPlanCharts = ({ plan, progressLogs }) => {
 
       {/* Variance Analysis */}
       {comparisonData.some(c => c.variance !== 0) && (
-        <div className="bg-white border rounded-lg p-4">
-          <h4 className="font-semibold text-gray-800 mb-4">Schedule Variance by Category</h4>
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4">
+          <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-4">Schedule Variance by Category</h4>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={comparisonData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-45} textAnchor="end" height={80} />
-              <YAxis label={{ value: 'Days', angle: -90, position: 'insideLeft' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity="0.1" />
+              <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 11 }} interval={0} angle={-45} textAnchor="end" height={80} />
+              <YAxis label={{ value: 'Days', angle: -90, position: 'insideLeft', fill: 'currentColor' }} tick={{ fill: 'currentColor' }} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', border: '1px solid rgba(229, 231, 235, 0.5)', color: '#1f2937' }}
                 formatter={(value) => [`${value > 0 ? '+' : ''}${value} days`, 'Variance']}
               />
-              <ReferenceLine y={0} stroke="#374151" />
+              <ReferenceLine y={0} stroke="currentColor" opacity="0.3" />
               <Bar dataKey="variance" name="Days Ahead/Behind" radius={[4, 4, 0, 0]}>
                 {comparisonData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.variance > 0 ? '#ef4444' : '#10b981'} />

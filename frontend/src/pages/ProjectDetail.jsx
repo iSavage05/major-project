@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ExecutionPlanCharts from '../components/ExecutionPlanCharts';
 import { ArrowLeft, Upload, Wand2, FileText, Clock, Users, Package, Smartphone, PlayCircle, TrendingUp, BarChart3 } from 'lucide-react';
+import { PageLoader } from '../components/ui/Loader';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -181,18 +182,12 @@ const ProjectDetail = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoader label="Loading project details..." />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -200,7 +195,7 @@ const ProjectDetail = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <h1 className="text-2xl font-bold text-gray-900">{project?.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{project?.name}</h1>
             </div>
             <div className="flex space-x-3">
               <Button onClick={() => setIsDesignModalOpen(true)}>
@@ -224,19 +219,19 @@ const ProjectDetail = () => {
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Status</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
                 <p className="font-semibold capitalize">{project?.status}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Progress</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Progress</p>
                 <p className="font-semibold">{project?.progress}%</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Budget</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Budget</p>
                 <p className="font-semibold">${project?.budget || 'Not set'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Room Type</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Room Type</p>
                 <p className="font-semibold">{project?.room_type || 'Not specified'}</p>
               </div>
             </div>
@@ -254,13 +249,13 @@ const ProjectDetail = () => {
             </CardHeader>
             <CardContent>
               {designs.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No designs yet. Generate your first design!</p>
+                <p className="text-gray-600 dark:text-gray-400 text-center py-8">No designs yet. Generate your first design!</p>
               ) : (
                 <div className="space-y-4">
                   {designs.map((design) => (
-                    <div key={design.id} className="border rounded-lg p-4">
+                    <div key={design.id} className="hover:shadow-md transition-shadow">
                       <h4 className="font-semibold text-lg mb-1">{design.design_name}</h4>
-                      <p className="text-sm text-gray-600 mb-2">{design.prompt}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{design.prompt}</p>
                       {(design.generated_image_url || design.generated_image_path) && (
                         <img
                           src={design.generated_image_url || `http://localhost:5000${design.generated_image_path}`}
@@ -278,8 +273,8 @@ const ProjectDetail = () => {
                         {design.execution_plan ? 'Regenerate Execution Plan' : 'Generate Execution Plan'}
                       </Button>
                       {design.execution_plan && (
-                        <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                          <p className="text-gray-600">Duration: <span className="font-semibold">{design.execution_plan.total_duration}</span></p>
+                        <div className="mt-2 p-2 bg-purple-500/10 rounded text-sm">
+                          <p className="text-gray-600 dark:text-gray-400">Duration: <span className="font-semibold">{design.execution_plan.total_duration}</span></p>
                         </div>
                       )}
                     </div>
@@ -299,7 +294,7 @@ const ProjectDetail = () => {
             </CardHeader>
             <CardContent>
               {designs.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No designs yet. Generate a design first!</p>
+                <p className="text-gray-600 dark:text-gray-400 text-center py-8">No designs yet. Generate a design first!</p>
               ) : (
                 <>
                   {/* Design Buttons */}
@@ -328,7 +323,7 @@ const ProjectDetail = () => {
                         const selectedDesign = designs.find(d => d.id === selectedDesignForMaterials);
                         const designMaterials = selectedDesign?.materials || [];
                         return designMaterials.length === 0 ? (
-                          <p className="text-gray-600 text-center py-4">No materials for this design.</p>
+                          <p className="text-gray-600 dark:text-gray-400 text-center py-4">No materials for this design.</p>
                         ) : (
                           <>
                             <p className="text-sm font-semibold mb-2">{selectedDesign.design_name} Materials:</p>
@@ -336,10 +331,10 @@ const ProjectDetail = () => {
                               <div key={material.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                                 <div>
                                   <p className="font-medium text-sm">{material.description}</p>
-                                  <p className="text-xs text-gray-600">{material.quantity} {material.unit}</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">{material.quantity} {material.unit}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-xs text-gray-600 capitalize">{material.status}</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{material.status}</p>
                                   {material.estimated_cost && (
                                     <p className="text-sm font-semibold">${material.estimated_cost}</p>
                                   )}
@@ -363,41 +358,44 @@ const ProjectDetail = () => {
           {/* Execution Plans by Design - One tile per design (aggregated) */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Clock className="w-5 h-5 mr-2" />
+              <CardTitle className="flex items-center text-gray-900 dark:text-gray-100">
+                <Clock className="w-5 h-5 mr-2 text-gray-900 dark:text-gray-100" />
                 Execution Plans
               </CardTitle>
             </CardHeader>
             <CardContent>
               {designs.length === 0 || designs.every(d => !d.aggregated_execution_plan || d.aggregated_execution_plan.total_labour_days === 0) ? (
-                <p className="text-gray-600 text-center py-8">No execution plans yet. Generate a design and create execution plans!</p>
+                <p className="text-gray-600 dark:text-gray-400 text-center py-8">No execution plans yet. Generate a design and create execution plans!</p>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-4">
                   {designs.filter(d => d.aggregated_execution_plan && d.aggregated_execution_plan.total_labour_days > 0).map((design) => (
-                    <div key={design.id} className="border rounded-lg p-4 bg-white">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-lg">{design.design_name}</h3>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                          {design.aggregated_execution_plan.categories_count} categories
-                        </span>
+                    <div key={design.id} className="border border-gray-200 dark:border-gray-700 p-4 rounded-lg">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{design.design_name}</h3>
+                          <span className="inline-block mt-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-full text-xs font-medium">
+                            {design.aggregated_execution_plan.categories_count} categories
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            {Math.round((design.aggregated_execution_plan.total_progress_days / design.aggregated_execution_plan.total_labour_days) * 100)}%
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Complete</p>
+                        </div>
                       </div>
                       
-                      <div className="space-y-2 mb-4">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Total Duration:</span>
-                          <span className="font-medium">{design.aggregated_execution_plan.calculated_duration}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Progress:</span>
-                          <span className="font-medium">
+                      {/* Progress bar */}
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-medium">
                             {design.aggregated_execution_plan.total_progress_days.toFixed(1)} / {design.aggregated_execution_plan.total_labour_days} days
                           </span>
                         </div>
-                        
-                        {/* Progress bar */}
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                           <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            className="bg-primary-600 h-3 rounded-full transition-all duration-500"
                             style={{ 
                               width: `${Math.min(100, (design.aggregated_execution_plan.total_progress_days / 
                                 design.aggregated_execution_plan.total_labour_days * 100) || 0)}%` 
@@ -405,14 +403,26 @@ const ProjectDetail = () => {
                           />
                         </div>
                       </div>
+
+                      {/* Stats grid */}
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Duration</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{design.aggregated_execution_plan.calculated_duration}</p>
+                        </div>
+                        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Labour Days</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{design.aggregated_execution_plan.total_labour_days} days</p>
+                        </div>
+                      </div>
                       
                       <Button
                         size="sm"
                         onClick={() => handleOpenExecutionDialog(design)}
-                        className="w-full flex items-center justify-center gap-1"
+                        className="w-full flex items-center justify-center gap-2"
                       >
                         <BarChart3 className="w-4 h-4" />
-                        View Timeline
+                        View Detailed Timeline
                       </Button>
                     </div>
                   ))}
@@ -431,31 +441,31 @@ const ProjectDetail = () => {
             </CardHeader>
             <CardContent>
               {bids.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No bids yet. Suppliers will bid on your materials!</p>
+                <p className="text-gray-600 dark:text-gray-400 text-center py-8">No bids yet. Suppliers will bid on your materials!</p>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {bids.filter(bid => bid.status !== 'rejected').map((bid) => (
-                    <div key={bid.id} className="border rounded-lg p-4">
+                    <div key={bid.id} className="hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-medium">{bid.supplier_name}</p>
                             {bid.company_name && (
-                              <span className="text-xs text-gray-600">({bid.company_name})</span>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">({bid.company_name})</span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-sm font-semibold text-blue-600">
+                            <span className="text-sm font-semibold text-primary-600">
                               {bid.design_name || 'Unknown Design'}
                             </span>
-                            <span className="text-xs bg-gray-100 px-2 py-1 rounded capitalize">
+                            <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded capitalize">
                               {bid.category}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="font-semibold">${bid.price}</p>
-                          <p className="text-xs text-gray-600">{bid.estimated_delivery_days} days</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{bid.estimated_delivery_days} days</p>
                         </div>
                       </div>
                       
@@ -479,7 +489,7 @@ const ProjectDetail = () => {
                         </div>
                       ) : (
                         <div className="mt-2">
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium capitalize bg-green-100 text-green-700">
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium capitalize bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400">
                             Accepted
                           </span>
                         </div>
@@ -501,10 +511,10 @@ const ProjectDetail = () => {
       >
         <form onSubmit={handleGenerateDesign} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Upload Room Image
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center">
               <input
                 type="file"
                 accept="image/*"
@@ -513,20 +523,20 @@ const ProjectDetail = () => {
                 id="file-upload"
               />
               <label htmlFor="file-upload" className="cursor-pointer">
-                <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                <p className="text-sm text-gray-600">
+                <Upload className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-2" />
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {selectedFile ? selectedFile.name : 'Click to upload image'}
                 </p>
               </label>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Design Name
             </label>
             <input
               type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               value={designName}
               onChange={(e) => setDesignName(e.target.value)}
               placeholder="Enter a name for this design (e.g., 'Master Bedroom Modern')"
@@ -534,11 +544,11 @@ const ProjectDetail = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Design Prompt
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               rows="4"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -555,7 +565,7 @@ const ProjectDetail = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={generating}>
+            <Button type="submit" className="flex-1" loading={generating}>
               {generating ? 'Generating...' : 'Generate Design'}
             </Button>
           </div>
@@ -572,9 +582,10 @@ const ProjectDetail = () => {
           setProgressLogs([]);
         }}
         title={`${selectedDesign ? `${selectedDesign.design_name} - Execution Timeline` : 'Execution Plan'}`}
+        className="max-w-6xl"
       >
         {loadingExecutionDetails ? (
-          <div className="text-center py-8">Loading...</div>
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading...</div>
         ) : executionPlanDetails ? (
           <div className="space-y-6 max-h-[80vh] overflow-y-auto">
             {/* Charts Section */}
@@ -584,7 +595,7 @@ const ProjectDetail = () => {
             />
 
             {/* Log Progress Form */}
-            <div className="border-t pt-4 bg-gray-50 rounded-lg p-4">
+            <div className="border-t pt-4 bg-gray-800/50 rounded-lg p-4">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Log Progress
@@ -592,34 +603,34 @@ const ProjectDetail = () => {
               <form onSubmit={handleLogProgress} className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Days Logged</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Days Logged</label>
                     <input
                       type="number"
                       step="0.5"
                       value={progressForm.days_logged}
                       onChange={(e) => setProgressForm({ ...progressForm, days_logged: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       placeholder="e.g., 2.5"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phase (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phase (Optional)</label>
                     <input
                       type="text"
                       value={progressForm.phase}
                       onChange={(e) => setProgressForm({ ...progressForm, phase: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       placeholder="e.g., Painting"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                   <textarea
                     value={progressForm.description}
                     onChange={(e) => setProgressForm({ ...progressForm, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                     rows="3"
                     placeholder="Describe the work completed..."
                     required
@@ -642,8 +653,8 @@ const ProjectDetail = () => {
                           {new Date(log.logged_at).toLocaleDateString()}
                         </span>
                       </div>
-                      {log.phase && <span className="text-xs text-blue-600 mb-1 block">{log.phase}</span>}
-                      <p className="text-gray-600">{log.description}</p>
+                      {log.phase && <span className="text-xs text-primary-600 mb-1 block">{log.phase}</span>}
+                      <p className="text-gray-600 dark:text-gray-400">{log.description}</p>
                     </div>
                   ))}
                 </div>

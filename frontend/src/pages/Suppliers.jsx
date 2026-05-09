@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { ArrowLeft, Plus, DollarSign, Package, CheckCircle, FolderOpen, Tag, X } from 'lucide-react';
+import { PageLoader } from '../components/ui/Loader';
 
 const Suppliers = () => {
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ const Suppliers = () => {
     image_url: '',
   });
   const [loading, setLoading] = useState(true);
+  const [submittingBid, setSubmittingBid] = useState(false);
+  const [addingToCatalog, setAddingToCatalog] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -84,6 +87,7 @@ const Suppliers = () => {
 
   const handleSubmitBid = async (e) => {
     e.preventDefault();
+    setSubmittingBid(true);
     try {
       await suppliersAPI.createBid({
         design_id: selectedDesign.id,
@@ -101,11 +105,14 @@ const Suppliers = () => {
       console.error('Error submitting bid:', error);
       const errorMsg = error.response?.data?.error || 'Failed to submit bid. Please try again.';
       alert(errorMsg);
+    } finally {
+      setSubmittingBid(false);
     }
   };
 
   const handleAddToCatalog = async (e) => {
     e.preventDefault();
+    setAddingToCatalog(true);
     try {
       await suppliersAPI.addToCatalog({
         ...catalogForm,
@@ -124,21 +131,17 @@ const Suppliers = () => {
     } catch (error) {
       console.error('Error adding to catalog:', error);
       alert('Failed to add to catalog. Please try again.');
+    } finally {
+      setAddingToCatalog(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoader label="Loading supplier data..." />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -146,7 +149,7 @@ const Suppliers = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <h1 className="text-2xl font-bold text-gray-900">Supplier Portal</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Supplier Portal</h1>
             </div>
             <Button onClick={() => setIsCatalogModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -161,22 +164,22 @@ const Suppliers = () => {
           {/* Available Designs for Bidding */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-gray-900 dark:text-gray-100">
                 <FolderOpen className="w-5 h-5 mr-2" />
                 Available Designs for Bidding
               </CardTitle>
             </CardHeader>
             <CardContent>
               {availableDesigns.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No designs available for bidding at the moment.</p>
+                <p className="text-gray-600 dark:text-gray-400 text-center py-8">No designs available for bidding at the moment.</p>
               ) : !selectedDesign ? (
                 // Show Design List
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {availableDesigns.map((design) => (
-                    <div key={design.id} className="border rounded-lg p-4">
-                      <h4 className="font-semibold text-lg">{design.design_name}</h4>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{design.prompt}</p>
-                      <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
+                    <div key={design.id} className="hover:shadow-md transition-shadow p-4 border border-gray-200 dark:border-gray-700">
+                      <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{design.design_name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{design.prompt}</p>
+                      <div className="flex justify-between items-center mt-2 text-sm text-gray-600 dark:text-gray-400">
                         <span>{design.materials_count} materials</span>
                         <span className="capitalize">{design.categories?.length || 0} categories</span>
                       </div>
@@ -210,25 +213,25 @@ const Suppliers = () => {
                   </div>
                   
                   {designCategories.length === 0 ? (
-                    <p className="text-gray-600 text-center py-8">No categories available for this design.</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-center py-8">No categories available for this design.</p>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {designCategories.map((category) => (
-                        <div key={category.category} className="border rounded-lg p-4">
+                        <div key={category.category} className="hover:shadow-md transition-shadow p-4 border border-gray-200 dark:border-gray-700">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <Tag className="w-4 h-4 mr-2 text-blue-500" />
-                              <h4 className="font-semibold capitalize">{category.category}</h4>
+                              <Tag className="w-4 h-4 mr-2 text-gray-900 dark:text-gray-100" />
+                              <h4 className="font-semibold capitalize text-gray-900 dark:text-gray-100">{category.category}</h4>
                             </div>
-                            <span className="text-sm text-gray-600">{category.count} items</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{category.count} items</span>
                           </div>
                           
                           {category.existing_bid ? (
-                            <div className="mt-3 p-2 bg-gray-100 rounded">
-                              <p className="text-sm">
+                            <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-700">
+                              <p className="text-sm text-gray-900 dark:text-gray-100">
                                 <span className="font-medium">Your bid:</span> ${category.existing_bid.price}
                               </p>
-                              <p className="text-xs text-gray-600 capitalize">
+                              <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">
                                 Status: {category.existing_bid.status}
                               </p>
                             </div>
@@ -265,36 +268,36 @@ const Suppliers = () => {
           {/* My Bids */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-gray-900 dark:text-gray-100">
                 <DollarSign className="w-5 h-5 mr-2" />
                 My Bids
               </CardTitle>
             </CardHeader>
             <CardContent>
               {myBids.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">You haven't placed any bids yet.</p>
+                <p className="text-gray-600 dark:text-gray-400 text-center py-8">You haven't placed any bids yet.</p>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {myBids.map((bid) => (
-                    <div key={bid.id} className="border rounded-lg p-4">
-                      <h4 className="font-semibold">{bid.design_name}</h4>
+                    <div key={bid.id} className="hover:shadow-md transition-shadow p-4 border border-gray-200 dark:border-gray-700">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">{bid.design_name}</h4>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm capitalize bg-gray-100 px-2 py-1 rounded">
+                        <span className="text-sm capitalize bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
                           {bid.category}
                         </span>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
                           {bid.materials_count} materials
                         </span>
                       </div>
                       <div className="flex justify-between items-center mt-3">
                         <div>
                           <p className="font-semibold">${bid.price}</p>
-                          <p className="text-xs text-gray-600">{bid.estimated_delivery_days} days delivery</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{bid.estimated_delivery_days} days delivery</p>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
-                          bid.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                          bid.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
+                          bid.status === 'accepted' ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400' :
+                          bid.status === 'rejected' ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-400' :
+                          'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-400'
                         }`}>
                           {bid.status}
                         </span>
@@ -321,7 +324,7 @@ const Suppliers = () => {
           {viewingMaterials.map((material) => (
             <div key={material.id} className="border-b py-2 last:border-0">
               <p className="font-medium">{material.description}</p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {material.quantity} {material.unit} | HSN: {material.hsn_sac || 'N/A'}
               </p>
             </div>
@@ -347,7 +350,7 @@ const Suppliers = () => {
       >
         <form onSubmit={handleSubmitBid} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Price ($)
             </label>
             <Input
@@ -360,7 +363,7 @@ const Suppliers = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Estimated Delivery (Days)
             </label>
             <Input
@@ -372,11 +375,11 @@ const Suppliers = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Notes (Optional)
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               rows="3"
               value={bidForm.notes}
               onChange={(e) => setBidForm({ ...bidForm, notes: e.target.value })}
@@ -392,8 +395,8 @@ const Suppliers = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Submit Bid
+            <Button type="submit" className="flex-1" loading={submittingBid}>
+              {submittingBid ? 'Submitting...' : 'Submit Bid'}
             </Button>
           </div>
         </form>
@@ -407,7 +410,7 @@ const Suppliers = () => {
       >
         <form onSubmit={handleAddToCatalog} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Product Name
             </label>
             <Input
@@ -419,11 +422,11 @@ const Suppliers = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               rows="3"
               value={catalogForm.description}
               onChange={(e) => setCatalogForm({ ...catalogForm, description: e.target.value })}
@@ -431,11 +434,11 @@ const Suppliers = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Category
             </label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               value={catalogForm.category}
               onChange={(e) => setCatalogForm({ ...catalogForm, category: e.target.value })}
             >
@@ -453,7 +456,7 @@ const Suppliers = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Price ($)
             </label>
             <Input
@@ -466,7 +469,7 @@ const Suppliers = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Image URL (Optional)
             </label>
             <Input
@@ -485,8 +488,8 @@ const Suppliers = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Add Product
+            <Button type="submit" className="flex-1" loading={addingToCatalog}>
+              {addingToCatalog ? 'Adding...' : 'Add Product'}
             </Button>
           </div>
         </form>
