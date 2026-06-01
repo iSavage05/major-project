@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { projectsAPI, designAPI, dashboardAPI, suppliersAPI } from '../services/api';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ExecutionPlanCharts from '../components/ExecutionPlanCharts';
-import { ArrowLeft, Upload, Wand2, FileText, Clock, Users, Package, Smartphone, PlayCircle, TrendingUp, BarChart3 } from 'lucide-react';
+import AILoader from '../components/ui/AILoader';
 import ThemeToggle from '../components/ui/ThemeToggle';
+import { ArrowLeft, Upload, FileText, TrendingUp, Calendar, CheckCircle, Layers, Target, Info, Download, Share2, Users, Clock, Building2, Wand2, Smartphone, Package, BarChart3 } from 'lucide-react';
+import { dashboardAPI, designAPI, suppliersAPI } from '../services/api';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -72,10 +73,8 @@ const ProjectDetail = () => {
       setPrompt('');
       setDesignName('');
       fetchProjectDetails();
-      alert('Design generated successfully!');
     } catch (error) {
       console.error('Error generating design:', error);
-      alert('Failed to generate design. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -86,10 +85,8 @@ const ProjectDetail = () => {
       setGenerating(true);
       await designAPI.generateExecutionPlan(designId);
       fetchProjectDetails();
-      alert('Execution plan generated successfully!');
     } catch (error) {
       console.error('Error generating execution plan:', error);
-      alert('Failed to generate execution plan. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -99,10 +96,8 @@ const ProjectDetail = () => {
     try {
       await suppliersAPI.acceptBid(bidId);
       fetchProjectDetails();
-      alert('Bid accepted successfully!');
     } catch (error) {
       console.error('Error accepting bid:', error);
-      alert('Failed to accept bid. Please try again.');
     }
   };
 
@@ -110,10 +105,8 @@ const ProjectDetail = () => {
     try {
       await suppliersAPI.rejectBid(bidId);
       fetchProjectDetails();
-      alert('Bid rejected successfully!');
     } catch (error) {
       console.error('Error rejecting bid:', error);
-      alert('Failed to reject bid. Please try again.');
     }
   };
 
@@ -177,10 +170,8 @@ const ProjectDetail = () => {
       
       // Reset form
       setProgressForm({ days_logged: '', description: '', phase: '' });
-      alert('Progress logged successfully!');
     } catch (error) {
       console.error('Error logging progress:', error);
-      alert('Failed to log progress. Please try again.');
     }
   };
 
@@ -725,6 +716,9 @@ const ProjectDetail = () => {
           </Button>
         </div>
       </Modal>
+
+      {/* AI Loader */}
+      <AILoader isOpen={generating} />
     </div>
   );
 };
