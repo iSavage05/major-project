@@ -52,6 +52,7 @@ def create_app():
     from app.routes.design import design_bp
     from app.routes.suppliers import suppliers_bp
     from app.routes.dashboard import dashboard_bp
+    from app.routes.vastu import vastu_bp
     
     # Handle OPTIONS requests before routing to avoid 308 redirects
     @app.before_request
@@ -69,5 +70,6 @@ def create_app():
     app.register_blueprint(design_bp, url_prefix='/api/design')
     app.register_blueprint(suppliers_bp, url_prefix='/api/suppliers')
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
+    app.register_blueprint(vastu_bp, url_prefix='/api/vastu')
     
     return app

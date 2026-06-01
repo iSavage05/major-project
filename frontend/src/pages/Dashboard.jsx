@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI, authAPI } from '../services/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
@@ -9,10 +9,10 @@ import {
   Plus, 
   FolderOpen, 
   Package, 
-  Users, 
   LogOut,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Compass
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -22,11 +22,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [statsRes, userRes] = await Promise.all([
         dashboardAPI.getOverview(),
@@ -40,7 +36,11 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -185,6 +185,20 @@ const Dashboard = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">View Projects</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Manage your existing projects</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-xl transition-all duration-200 group" onClick={() => navigate('/vastu-audit')}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="bg-amber-100 dark:bg-amber-900/30 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                  <Compass className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Vastu Audit</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Analyze floor-plan compliance</p>
                 </div>
               </div>
             </CardContent>

@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import requests
 from PIL import Image as PILImage
 from io import BytesIO
 from app.models import Project, Design, Material, ExecutionPlan
@@ -16,6 +17,23 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_materials_for_design(project_id, design_id, materials):
+    """Persist parsed material rows for a newly generated design."""
+    for material_data in materials:
+        category = material_data.get('category', 'other')
+        category = category.lower().strip() if category else 'other'
+
+        material_data_dict = {
+            'project_id': project_id,
+            'design_id': design_id,
+            'description': material_data.get('description_of_goods', ''),
+            'hsn_sac': material_data.get('hsn_sac', ''),
+            'quantity': material_data.get('qty', 0),
+            'unit': material_data.get('unit', ''),
+            'category': category
+        }
+        Material.create(material_data_dict)
 
 @design_bp.route('/generate', methods=['POST'])
 @jwt_required()
@@ -64,7 +82,8 @@ def generate_design():
         result = design_service.generate_design_from_url(original_image_url, prompt)
         
         if not result['success']:
-            return jsonify({'error': result['error']}), 500
+            status_code = 400 if result.get('code') == 'invalid_prompt' else 500
+            return jsonify({'error': result['error']}), status_code
         
         # Upload generated image to Cloudinary
         output_buffer = BytesIO()
@@ -88,23 +107,7 @@ def generate_design():
         }
         design_id = Design.create(design_data)
         
-        # Save materials with design_id and proper category
-        for material_data in result['materials']:
-            # Extract category from the material data (AI should provide this now)
-            category = material_data.get('category', 'other')
-            # Normalize category value
-            category = category.lower().strip() if category else 'other'
-            
-            material_data_dict = {
-                'project_id': project_id,
-                'design_id': design_id,
-                'description': material_data.get('description_of_goods', ''),
-                'hsn_sac': material_data.get('hsn_sac', ''),
-                'quantity': material_data.get('qty', 0),
-                'unit': material_data.get('unit', ''),
-                'category': category
-            }
-            Material.create(material_data_dict)
+        save_materials_for_design(project_id, design_id, result['materials'])
         
         return jsonify({
             'message': 'Design generated successfully',
@@ -113,6 +116,87 @@ def generate_design():
             'generated_image': generated_image_url
         }), 201
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@design_bp.route('/<string:design_id>/alternate', methods=['POST'])
+@jwt_required()
+def generate_alternate_design(design_id):
+    """
+    Generate an alternate design from an existing generated design.
+
+    The current generated image is used as the new source image, while the
+    existing prompt and user's alternate prompt are combined for continuity.
+    """
+    user_id = get_jwt_identity()
+    design_data = Design.find_by_id(design_id)
+
+    if not design_data:
+        return jsonify({'error': 'Design not found'}), 404
+
+    project_data = Project.find_by_id(design_data.get('project_id'))
+    if not project_data or project_data.get('user_id') != user_id:
+        return jsonify({'error': 'Project not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    alternate_prompt = (data.get('prompt') or '').strip()
+    if not alternate_prompt:
+        return jsonify({'error': 'prompt is required'}), 400
+
+    source_image_url = design_data.get('generated_image_url') or design_data.get('generated_image_path')
+    if not source_image_url:
+        return jsonify({'error': 'Selected design does not have a generated image'}), 400
+    if source_image_url.startswith('/'):
+        source_image_url = request.host_url.rstrip('/') + source_image_url
+
+    design_name = (
+        data.get('design_name')
+        or f"{design_data.get('design_name', 'Untitled Design')} - Alternate"
+    )
+
+    try:
+        design_service = DesignService()
+        result = design_service.generate_alternate_design_from_url(
+            source_image_url,
+            design_data.get('prompt') or '',
+            alternate_prompt
+        )
+
+        if not result['success']:
+            status_code = 400 if result.get('code') == 'invalid_prompt' else 500
+            return jsonify({'error': result['error']}), status_code
+
+        output_buffer = BytesIO()
+        result['transformed_image'].save(output_buffer, format='PNG')
+        output_buffer.seek(0)
+
+        generated_upload_result = cloudinary.uploader.upload(
+            output_buffer,
+            folder='interior_design/generated',
+            resource_type='image'
+        )
+        generated_image_url = generated_upload_result['secure_url']
+
+        new_design_data = {
+            'project_id': str(project_data.get('_id')),
+            'design_name': design_name,
+            'original_image_url': source_image_url,
+            'generated_image_url': generated_image_url,
+            'prompt': result.get('final_prompt') or alternate_prompt,
+            'parent_design_id': design_id,
+            'alternate_prompt': alternate_prompt
+        }
+        new_design_id = Design.create(new_design_data)
+        save_materials_for_design(str(project_data.get('_id')), new_design_id, result['materials'])
+
+        return jsonify({
+            'message': 'Alternate design generated successfully',
+            'design_id': new_design_id,
+            'source_design_id': design_id,
+            'materials': result['materials'],
+            'generated_image': generated_image_url
+        }), 201
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

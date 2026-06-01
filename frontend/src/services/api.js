@@ -58,6 +58,7 @@ export const designAPI = {
     return api.post('/design/generate', formData, config);
   },
   getImage: (designId) => api.get(`/design/image/${designId}`),
+  generateAlternate: (designId, data) => api.post(`/design/${designId}/alternate`, data),
   generateExecutionPlan: (designId) => api.post(`/design/${designId}/execution-plan`),
   getProjectDesigns: (projectId) => api.get(`/design/project/${projectId}`),
   getExecutionPlan: (planId) => api.get(`/design/execution-plan/${planId}`),
@@ -82,6 +83,18 @@ export const dashboardAPI = {
   getOverview: () => api.get('/dashboard/overview'),
   getProjectDetails: (projectId) => api.get(`/dashboard/project/${projectId}/details`),
   getProjectProgress: (projectId) => api.get(`/dashboard/project/${projectId}/progress`),
+};
+
+export const vastuAPI = {
+  // Entry point for the isolated Vastu Suggestion System upload endpoint.
+  analyze: (formData) => {
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    };
+    return api.post('/vastu/analyze', formData, config);
+  },
 };
 
 export default api;

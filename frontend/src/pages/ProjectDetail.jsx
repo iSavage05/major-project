@@ -33,6 +33,10 @@ const ProjectDetail = () => {
   const [loadingExecutionDetails, setLoadingExecutionDetails] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isAlternateDesignModalOpen, setIsAlternateDesignModalOpen] = useState(false);
+  const [selectedDesignForAlternate, setSelectedDesignForAlternate] = useState(null);
+  const [alternatePrompt, setAlternatePrompt] = useState('');
+  const [alternateDesignName, setAlternateDesignName] = useState('');
 
   useEffect(() => {
     fetchProjectDetails();
@@ -75,6 +79,8 @@ const ProjectDetail = () => {
       fetchProjectDetails();
     } catch (error) {
       console.error('Error generating design:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to generate design.';
+      alert(errorMessage);
     } finally {
       setGenerating(false);
     }
@@ -87,6 +93,41 @@ const ProjectDetail = () => {
       fetchProjectDetails();
     } catch (error) {
       console.error('Error generating execution plan:', error);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleOpenAlternateDesignModal = (design) => {
+    setSelectedDesignForAlternate(design);
+    setAlternatePrompt('');
+    setAlternateDesignName(`${design.design_name || 'Untitled Design'} - Alternate`);
+    setIsAlternateDesignModalOpen(true);
+  };
+
+  const handleCloseAlternateDesignModal = () => {
+    setIsAlternateDesignModalOpen(false);
+    setSelectedDesignForAlternate(null);
+    setAlternatePrompt('');
+    setAlternateDesignName('');
+  };
+
+  const handleGenerateAlternateDesign = async (e) => {
+    e.preventDefault();
+    if (!selectedDesignForAlternate || !alternatePrompt.trim()) return;
+
+    setGenerating(true);
+    try {
+      await designAPI.generateAlternate(selectedDesignForAlternate.id, {
+        prompt: alternatePrompt,
+        design_name: alternateDesignName || `${selectedDesignForAlternate.design_name} - Alternate`
+      });
+      handleCloseAlternateDesignModal();
+      fetchProjectDetails();
+    } catch (error) {
+      console.error('Error generating alternate design:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to generate alternate design.';
+      alert(errorMessage);
     } finally {
       setGenerating(false);
     }
@@ -282,15 +323,25 @@ const ProjectDetail = () => {
                           </div>
                         </div>
                       )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleGenerateExecutionPlan(design.id)}
-                        className="w-full"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        {design.execution_plan ? 'Regenerate Execution Plan' : 'Generate Execution Plan'}
-                      </Button>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleGenerateExecutionPlan(design.id)}
+                          className="w-full text-xs sm:text-sm"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          {design.execution_plan ? 'Regenerate Execution Plan' : 'Generate Execution Plan'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenAlternateDesignModal(design)}
+                          className="w-full text-xs sm:text-sm"
+                        >
+                          <Wand2 className="w-4 h-4 mr-2" />
+                          Alternate Design
+                        </Button>
+                      </div>
                       {design.execution_plan && (
                         <div className="mt-2 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-sm">
                           <p className="text-gray-700 dark:text-gray-300">Duration: <span className="font-semibold text-gray-900 dark:text-white">{design.execution_plan.total_duration}</span></p>
@@ -381,71 +432,106 @@ const ProjectDetail = () => {
           </Card>
 
           {/* Execution Plans by Design - One tile per design (aggregated) */}
-          <Card className="hover:shadow-xl transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-gray-900 dark:text-white">
-                <Clock className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
-                Execution Plans
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {designs.length === 0 || designs.every(d => !d.aggregated_execution_plan || d.aggregated_execution_plan.total_labour_days === 0) ? (
-                <div className="text-center py-12">
-                  <div className="bg-green-100 dark:bg-green-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock className="w-8 h-8 text-green-600 dark:text-green-400" />
+<Card className="w-full hover:shadow-xl transition-all duration-300 border-gray-100 dark:border-gray-800">
+  <CardHeader className="pb-4">
+    <CardTitle className="flex items-center text-gray-900 dark:text-white font-bold tracking-tight text-xl">
+      <Clock className="w-5 h-5 mr-2.5 text-primary-500 dark:text-primary-400 shrink-0" />
+      Execution Plans
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    {designs.length === 0 || designs.every(d => !d.aggregated_execution_plan || d.aggregated_execution_plan.total_labour_days === 0) ? (
+      <div className="text-center py-16 bg-gray-50/50 dark:bg-gray-900/10 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+        <div className="bg-green-100 dark:bg-green-950/40 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Clock className="w-8 h-8 text-green-600 dark:text-green-400" />
+        </div>
+        <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">No execution plans yet</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 max-w-xs mx-auto">
+          Generate a design and create execution plans to get started!
+        </p>
+      </div>
+    ) : (
+      /* CRITICAL FIX 1: Defined grid layout that explicitly prevents the child cards 
+        from shrinking below 300px using minmax().
+      */
+      <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(300px,1fr))] w-full">
+        {designs
+          .filter(d => d.aggregated_execution_plan && d.aggregated_execution_plan.total_labour_days > 0)
+          .map((design) => {
+            const progressPercent = Math.min(
+              100,
+              (design.aggregated_execution_plan.total_progress_days / design.aggregated_execution_plan.total_labour_days * 100) || 0
+            );
+
+            return (
+              /* CRITICAL FIX 2: Added min-w-[300px] directly to the card wrapper 
+                so parent layout rules can't compress it into a tiny column.
+              */
+              <div 
+                key={design.id} 
+                className="group relative flex flex-col justify-between border border-gray-200 dark:border-gray-800 rounded-2xl p-5 bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-900/50 shadow-sm transition-all duration-300 w-full min-w-[300px]"
+              >
+                <div className="space-y-4 mb-5">
+                  {/* Title & Badge Alignment */}
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white tracking-tight truncate" title={design.design_name}>
+                      {design.design_name}
+                    </h3>
+                    <span className="shrink-0 px-2.5 py-1 bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-400 rounded-lg text-xs font-semibold border border-primary-100/50 dark:border-primary-900/30 whitespace-nowrap">
+                      {design.aggregated_execution_plan.categories_count} categories
+                    </span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">No execution plans yet</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">Generate a design and create execution plans!</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {designs.filter(d => d.aggregated_execution_plan && d.aggregated_execution_plan.total_labour_days > 0).map((design) => (
-                    <div key={design.id} className="border border-gray-200 dark:border-dark-border rounded-xl p-4 bg-white dark:bg-dark-surface hover:shadow-lg transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{design.design_name}</h3>
-                        <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded text-xs font-medium">
-                          {design.aggregated_execution_plan.categories_count} categories
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Total Duration:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">{design.aggregated_execution_plan.calculated_duration}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Progress:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {design.aggregated_execution_plan.total_progress_days.toFixed(1)} / {design.aggregated_execution_plan.total_labour_days} days
-                          </span>
-                        </div>
-                        
-                        {/* Progress bar */}
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div 
-                            className="bg-primary-600 h-2 rounded-full transition-all"
-                            style={{ 
-                              width: `${Math.min(100, (design.aggregated_execution_plan.total_progress_days / 
-                                design.aggregated_execution_plan.total_labour_days * 100) || 0)}%` 
-                            }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <Button
-                        size="sm"
-                        onClick={() => handleOpenExecutionDialog(design)}
-                        className="w-full flex items-center justify-center gap-1"
-                      >
-                        <BarChart3 className="w-4 h-4" />
-                        View Timeline
-                      </Button>
+                  
+                  {/* Inner Metrics Panel */}
+                  <div className="flex flex-col gap-3 p-4 bg-gray-50/70 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800/60">
+                    {/* Duration Row */}
+                    <div className="flex justify-between items-center gap-4 border-b border-gray-200/50 dark:border-gray-800/50 pb-2.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 shrink-0">Duration</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                        {design.aggregated_execution_plan.calculated_duration}
+                      </span>
                     </div>
-                  ))}
+                    {/* Progress Row */}
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 shrink-0">Progress</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                        {design.aggregated_execution_plan.total_progress_days.toFixed(1)} / {design.aggregated_execution_plan.total_labour_days} days
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                
+                {/* Progress Bar & Button */}
+                <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800/60 mt-auto">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-500 dark:text-gray-400 font-medium">Completion Rate</span>
+                      <span className="font-bold text-primary-600 dark:text-primary-400">{progressPercent.toFixed(0)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200/70 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                      <div 
+                        className="bg-primary-600 dark:bg-primary-500 h-full rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button
+                    size="sm"
+                    onClick={() => handleOpenExecutionDialog(design)}
+                    className="w-full flex items-center justify-center gap-2 font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-xl py-2.5 transition-colors shadow-sm"
+                  >
+                    <BarChart3 className="w-4 h-4 shrink-0" />
+                    View Timeline
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    )}
+  </CardContent>
+</Card>
 
           {/* Bids */}
           <Card className="hover:shadow-xl transition-all duration-200">
@@ -589,6 +675,78 @@ const ProjectDetail = () => {
             </Button>
             <Button type="submit" className="flex-1" disabled={generating}>
               {generating ? 'Generating...' : 'Generate Design'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Alternate Design Modal */}
+      <Modal
+        isOpen={isAlternateDesignModalOpen}
+        onClose={handleCloseAlternateDesignModal}
+        title="Create Alternate Design"
+      >
+        <form onSubmit={handleGenerateAlternateDesign} className="space-y-4">
+          {selectedDesignForAlternate && (
+            <div className="rounded-lg border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-gray-800/40 p-3">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                Source design: {selectedDesignForAlternate.design_name}
+              </p>
+              <p className="mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-3">
+                Original prompt: {selectedDesignForAlternate.prompt}
+              </p>
+              {(selectedDesignForAlternate.generated_image_url || selectedDesignForAlternate.generated_image_path) && (
+                <img
+                  src={selectedDesignForAlternate.generated_image_url || `http://localhost:5000${selectedDesignForAlternate.generated_image_path}`}
+                  alt={selectedDesignForAlternate.design_name}
+                  className="mt-3 h-36 w-full rounded-lg object-cover"
+                />
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Alternate Design Name
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-dark-surface dark:text-dark-text"
+              value={alternateDesignName}
+              onChange={(e) => setAlternateDesignName(e.target.value)}
+              placeholder="e.g., Warm Wood Alternate"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Alternate Prompt
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-dark-surface dark:text-dark-text"
+              rows="4"
+              value={alternatePrompt}
+              onChange={(e) => setAlternatePrompt(e.target.value)}
+              placeholder="Describe the interior variation, such as warmer lighting, different furniture layout, alternate color palette, or upgraded finishes."
+              required
+            />
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Alternate designs use the current generated image as the source and stay restricted to interior design changes.
+            </p>
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCloseAlternateDesignModal}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1" disabled={generating}>
+              {generating ? 'Generating...' : 'Generate Alternate'}
             </Button>
           </div>
         </form>

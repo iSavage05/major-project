@@ -1,5 +1,6 @@
 import os
 import io
+import re
 import textwrap
 from pathlib import Path
 import google.generativeai as genai
@@ -7,7 +8,32 @@ import PIL.Image
 import requests
 from app.utils.markdown_parser import parse_materials_markdown, parse_execution_plan_markdown
 
+class DesignPromptGuardrailError(ValueError):
+    """Raised when a generation request is outside the interior-design domain."""
+
+
 class DesignService:
+    INTERIOR_TERMS = {
+        "interior", "room", "living", "bedroom", "kitchen", "bathroom", "dining",
+        "office", "study", "foyer", "hall", "lounge", "balcony", "ceiling",
+        "wall", "floor", "flooring", "tile", "tiles", "paint", "color", "colour",
+        "palette", "lighting", "light", "lamp", "chandelier", "furniture", "sofa",
+        "couch", "chair", "table", "bed", "wardrobe", "cabinet", "shelf", "shelves",
+        "curtain", "rug", "carpet", "decor", "plant", "plants", "wood", "wooden",
+        "marble", "granite", "minimalist", "modern", "traditional", "luxury",
+        "scandinavian", "boho", "industrial", "contemporary", "rustic", "vintage",
+        "storage", "partition", "false ceiling", "panel", "texture", "accent",
+        "layout", "space", "apartment", "home", "house", "residential"
+    }
+    NON_INTERIOR_TERMS = {
+        "person", "people", "man", "woman", "child", "celebrity", "portrait",
+        "selfie", "animal", "dog", "cat", "bird", "car", "bike", "motorcycle",
+        "airplane", "spaceship", "outer space", "planet", "city skyline",
+        "weapon", "gun", "blood", "logo", "banner", "cartoon", "anime",
+        "fantasy character", "superhero",
+        "food plate", "product packaging"
+    }
+
     def __init__(self):
         self.api_key = os.environ.get('GEMINI_API_KEY')
         if not self.api_key:
@@ -20,22 +46,31 @@ class DesignService:
     def generate_design(self, image_path: str, prompt: str) -> dict:
         """Generate interior design from room image"""
         try:
+            self._validate_interior_design_prompt(prompt)
+            guarded_prompt = self._build_interior_generation_prompt(prompt)
             base_image = PIL.Image.open(image_path)
             
             # Generate transformed image
-            transformed_image = self._generate_transformed_image(base_image, prompt)
+            transformed_image = self._generate_transformed_image(base_image, guarded_prompt)
             if not transformed_image:
                 raise Exception("Failed to generate transformed image")
             
             # Generate materials list
-            materials_text = self._generate_materials_list(prompt, base_image, transformed_image)
+            materials_text = self._generate_materials_list(guarded_prompt, base_image, transformed_image)
             materials = parse_materials_markdown(materials_text)
             
             return {
                 'success': True,
                 'transformed_image': transformed_image,
                 'materials': materials,
-                'materials_text': materials_text
+                'materials_text': materials_text,
+                'final_prompt': guarded_prompt
+            }
+        except DesignPromptGuardrailError as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'code': 'invalid_prompt'
             }
         except Exception as e:
             return {
@@ -46,31 +81,144 @@ class DesignService:
     def generate_design_from_url(self, image_url: str, prompt: str) -> dict:
         """Generate interior design from room image URL"""
         try:
+            self._validate_interior_design_prompt(prompt)
+            guarded_prompt = self._build_interior_generation_prompt(prompt)
             # Download image from URL
             response = requests.get(image_url)
             response.raise_for_status()
             base_image = PIL.Image.open(io.BytesIO(response.content))
             
             # Generate transformed image
-            transformed_image = self._generate_transformed_image(base_image, prompt)
+            transformed_image = self._generate_transformed_image(base_image, guarded_prompt)
             if not transformed_image:
                 raise Exception("Failed to generate transformed image")
             
             # Generate materials list
-            materials_text = self._generate_materials_list(prompt, base_image, transformed_image)
+            materials_text = self._generate_materials_list(guarded_prompt, base_image, transformed_image)
             materials = parse_materials_markdown(materials_text)
             
             return {
                 'success': True,
                 'transformed_image': transformed_image,
                 'materials': materials,
-                'materials_text': materials_text
+                'materials_text': materials_text,
+                'final_prompt': guarded_prompt
+            }
+        except DesignPromptGuardrailError as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'code': 'invalid_prompt'
             }
         except Exception as e:
             return {
                 'success': False,
                 'error': str(e)
             }
+
+    def generate_alternate_design_from_url(
+        self,
+        current_design_image_url: str,
+        original_prompt: str,
+        alternate_prompt: str
+    ) -> dict:
+        """Generate an alternate interior design from an existing generated design."""
+        try:
+            self._validate_interior_design_prompt(
+                alternate_prompt,
+                context_prompt=original_prompt
+            )
+            combined_prompt = textwrap.dedent(f"""
+                Create an alternate version of the uploaded interior design.
+
+                Original design direction:
+                {original_prompt}
+
+                New alternate direction:
+                {alternate_prompt}
+            """).strip()
+            guarded_prompt = self._build_interior_generation_prompt(
+                combined_prompt,
+                is_alternate=True
+            )
+
+            response = requests.get(current_design_image_url)
+            response.raise_for_status()
+            current_design_image = PIL.Image.open(io.BytesIO(response.content))
+
+            transformed_image = self._generate_transformed_image(current_design_image, guarded_prompt)
+            if not transformed_image:
+                raise Exception("Failed to generate alternate design image")
+
+            materials_text = self._generate_materials_list(
+                guarded_prompt,
+                current_design_image,
+                transformed_image
+            )
+            materials = parse_materials_markdown(materials_text)
+
+            return {
+                'success': True,
+                'transformed_image': transformed_image,
+                'materials': materials,
+                'materials_text': materials_text,
+                'final_prompt': combined_prompt
+            }
+        except DesignPromptGuardrailError as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'code': 'invalid_prompt'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def _validate_interior_design_prompt(self, prompt: str, context_prompt: str = None) -> None:
+        """Reject prompts that are clearly unrelated to interior design."""
+        prompt_text = (prompt or '').strip()
+        if not prompt_text:
+            raise DesignPromptGuardrailError("Please describe an interior design change.")
+
+        prompt_lower = prompt_text.lower()
+        context_lower = (context_prompt or '').lower()
+        combined_lower = f"{context_lower} {prompt_lower}"
+
+        for blocked_term in self.NON_INTERIOR_TERMS:
+            if re.search(rf"\b{re.escape(blocked_term)}\b", prompt_lower):
+                raise DesignPromptGuardrailError(
+                    "This generator is restricted to interior design updates only. "
+                    "Please request changes to room layout, furniture, finishes, lighting, colors, or decor."
+                )
+
+        has_interior_context = any(term in combined_lower for term in self.INTERIOR_TERMS)
+        if not has_interior_context:
+            raise DesignPromptGuardrailError(
+                "Please keep the request within interior design, such as furniture, finishes, lighting, colors, room layout, or decor."
+            )
+
+    def _build_interior_generation_prompt(self, prompt: str, is_alternate: bool = False) -> str:
+        mode_instruction = (
+            "Use the uploaded generated room image as the current design baseline."
+            if is_alternate
+            else "Use the uploaded room image as the existing space baseline."
+        )
+
+        return textwrap.dedent(f"""
+            You are an interior design image editor. {mode_instruction}
+
+            Strict domain guardrails:
+            - Generate only a realistic interior design image of the same indoor space.
+            - Preserve the room's architectural structure, camera angle, openings, and scale unless the user asks for an interior layout adjustment.
+            - Apply only interior-design changes: furniture, finishes, lighting, wall treatments, flooring, ceiling, decor, storage, colors, and materials.
+            - Do not generate people, animals, vehicles, outdoor landscapes, logos, posters, fantasy/scifi scenes, unrelated products, or non-interior images.
+            - If any part of the user request is outside interior design, ignore that part and keep the output as a tasteful interior design variation.
+
+            User interior design request:
+            {prompt}
+        """).strip()
     
     def _generate_transformed_image(self, base_image: PIL.Image.Image, prompt: str) -> PIL.Image.Image:
         """Generate transformed room image"""
