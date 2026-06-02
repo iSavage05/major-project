@@ -30,6 +30,7 @@ const ProjectDetail = () => {
   const [executionPlanDetails, setExecutionPlanDetails] = useState(null);
   const [progressLogs, setProgressLogs] = useState([]);
   const [progressForm, setProgressForm] = useState({ days_logged: '', description: '', phase: '' });
+  const [progressImageFile, setProgressImageFile] = useState(null);
   const [loadingExecutionDetails, setLoadingExecutionDetails] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -48,8 +49,10 @@ const ProjectDetail = () => {
       setProject(response.data.project);
       setDesigns(response.data.designs || []);
       setBids(response.data.bids);
+      return response.data;
     } catch (error) {
       console.error('Error fetching project details:', error);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -183,24 +186,25 @@ const ProjectDetail = () => {
   const handleLogProgress = async (e) => {
     e.preventDefault();
     if (!selectedDesign || !selectedDesign.execution_plans || selectedDesign.execution_plans.length === 0) return;
-    
+
     try {
-      // Log progress to the first execution plan (could be enhanced to select specific category)
       const targetPlan = selectedDesign.execution_plans[0];
-      
-      await designAPI.logExecutionProgress(targetPlan.id, {
-        days_logged: parseFloat(progressForm.days_logged),
-        description: progressForm.description,
-        phase: progressForm.phase || null
-      });
-      
-      // Refresh project details to get updated aggregated data
-      await fetchProjectDetails();
-      
-      // Refresh the dialog data
-      const updatedDesign = designs.find(d => d.id === selectedDesign.id);
+      const formData = new FormData();
+      formData.append('days_logged', progressForm.days_logged);
+      formData.append('description', progressForm.description);
+      formData.append('phase', progressForm.phase || '');
+      if (progressImageFile) {
+        formData.append('image', progressImageFile);
+      }
+
+      await designAPI.logExecutionProgress(targetPlan.id, formData);
+
+      // Refresh project details and update the execution dialog using fresh data
+      const updatedData = await fetchProjectDetails();
+      const updatedDesign = updatedData?.designs?.find((d) => d.id === selectedDesign.id);
       if (updatedDesign) {
-        const aggregated = updatedDesign.aggregated_execution_plan;
+        setSelectedDesign(updatedDesign);
+        const aggregated = updatedDesign.aggregated_execution_plan || {};
         setExecutionPlanDetails({
           ...executionPlanDetails,
           progress_logs: aggregated.all_progress_logs || [],
@@ -208,9 +212,9 @@ const ProjectDetail = () => {
         });
         setProgressLogs(aggregated.all_progress_logs || []);
       }
-      
-      // Reset form
+
       setProgressForm({ days_logged: '', description: '', phase: '' });
+      setProgressImageFile(null);
     } catch (error) {
       console.error('Error logging progress:', error);
     }
@@ -774,12 +778,12 @@ const ProjectDetail = () => {
             />
 
             {/* Log Progress Form */}
-            <div className="border-t pt-4 bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <div className="border-t border-gray-200 dark:border-dark-border pt-4 bg-gray-50 dark:bg-dark-surface rounded-2xl p-5 shadow-sm">
+              <h3 className="font-semibold mb-3 flex items-center gap-2 text-gray-900 dark:text-white">
                 <TrendingUp className="w-5 h-5" />
                 Log Progress
               </h3>
-              <form onSubmit={handleLogProgress} className="space-y-3">
+              <form onSubmit={handleLogProgress} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Days Logged</label>
@@ -815,25 +819,47 @@ const ProjectDetail = () => {
                     required
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Image (Optional)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setProgressImageFile(e.target.files?.[0] || null)}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                  />
+                  {progressImageFile && (
+                    <p className="mt-2 text-xs text-gray-500">Selected file: {progressImageFile.name}</p>
+                  )}
+                </div>
                 <Button type="submit" className="w-full">Log Progress</Button>
               </form>
             </div>
 
             {/* Progress History */}
             {progressLogs.length > 0 && (
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-3">Progress History</h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="border-t border-gray-200 dark:border-dark-border pt-4">
+                <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Progress History</h3>
+                <div className="space-y-3 max-h-[28rem] overflow-y-auto">
                   {progressLogs.slice().reverse().map((log, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-3 text-sm">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium">{log.days_logged} days</span>
-                        <span className="text-xs text-gray-500">
+                    <div key={index} className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border shadow-sm rounded-2xl p-4 text-sm transition hover:shadow-md">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                        <span className="font-semibold text-gray-900 dark:text-white">{log.days_logged} days logged</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(log.logged_at).toLocaleDateString()}
                         </span>
                       </div>
-                      {log.phase && <span className="text-xs text-blue-600 mb-1 block">{log.phase}</span>}
-                      <p className="text-gray-600">{log.description}</p>
+                      {log.phase && <span className="inline-block text-xs text-blue-600 dark:text-blue-300 mb-2 rounded-full bg-blue-50 dark:bg-blue-950/20 px-2 py-1">{log.phase}</span>}
+                      <p className="text-gray-700 dark:text-gray-300 leading-6">{log.description}</p>
+                      {log.image_url && (
+                        <div className="mt-3">
+                          <img
+                            src={log.image_url}
+                            alt="Progress"
+                            className="h-28 w-full object-cover rounded-2xl cursor-pointer border border-gray-200 dark:border-dark-border"
+                            onClick={() => handleOpenImageModal(log.image_url, 'Progress Photo')}
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

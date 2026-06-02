@@ -62,7 +62,16 @@ export const designAPI = {
   generateExecutionPlan: (designId) => api.post(`/design/${designId}/execution-plan`),
   getProjectDesigns: (projectId) => api.get(`/design/project/${projectId}`),
   getExecutionPlan: (planId) => api.get(`/design/execution-plan/${planId}`),
-  logExecutionProgress: (planId, data) => api.post(`/design/execution-plan/${planId}/progress`, data),
+  logExecutionProgress: (planId, data) => {
+    if (data instanceof FormData) {
+      return api.post(`/design/execution-plan/${planId}/progress`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    }
+    return api.post(`/design/execution-plan/${planId}/progress`, data);
+  },
   getExecutionProgress: (planId) => api.get(`/design/execution-plan/${planId}/progress`),
 };
 

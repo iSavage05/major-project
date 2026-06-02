@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, url_for, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 import os
@@ -391,25 +391,45 @@ def log_execution_progress(plan_id):
     project_data = Project.find_by_id(plan_data.get('project_id'))
     if not project_data or project_data.get('user_id') != user_id:
         return jsonify({'error': 'Unauthorized'}), 403
-    
-    data = request.get_json()
-    
-    # Validate required fields
+
+    data = request.form if request.form else request.get_json(silent=True) or {}
     days_logged = data.get('days_logged')
     description = data.get('description')
-    phase = data.get('phase')  # Optional: which phase this progress relates to
-    
-    if days_logged is None or not description:
+    phase = data.get('phase')
+
+    if days_logged is None or days_logged == '' or not description:
         return jsonify({'error': 'days_logged and description are required'}), 400
-    
+
+    try:
+        days_logged_value = float(days_logged)
+    except ValueError:
+        return jsonify({'error': 'days_logged must be a number'}), 400
+
     # Create log entry
     log_entry = {
-        'days_logged': float(days_logged),
+        'days_logged': days_logged_value,
         'description': description,
         'phase': phase,
         'logged_by': user_id
     }
     
+    # Add progress image if provided
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                return jsonify({'error': 'Invalid image type. Allowed types: png, jpg, jpeg, webp'}), 400
+
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            progress_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'progress')
+            os.makedirs(progress_dir, exist_ok=True)
+            file_path = os.path.join(progress_dir, unique_filename)
+            file.save(file_path)
+
+            image_url = url_for('design.uploaded_file', filename=f'progress/{unique_filename}', _external=True)
+            log_entry['image_url'] = image_url
+
     # Add progress log
     ExecutionPlan.add_progress_log(plan_id, log_entry)
     
@@ -417,6 +437,11 @@ def log_execution_progress(plan_id):
         'message': 'Progress logged successfully',
         'log_entry': log_entry
     }), 201
+
+
+@design_bp.route('/uploads/<path:filename>', methods=['GET'])
+def uploaded_file(filename):
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
 
 @design_bp.route('/execution-plan/<string:plan_id>/progress', methods=['GET'])
